@@ -1277,10 +1277,10 @@ class XAPI extends Backbone.Model {
   validateProps() {
     let errorCount = 0;
 
-    if (!this.get('actor') || typeof this.get('actor') !== 'object') {
-      logging.warn('adapt-contrib-xapi: "actor" attribute not found!');
-      errorCount++;
-    }
+    // if (!this.get('actor') || typeof this.get('actor') !== 'object') {
+    //   logging.warn('adapt-contrib-xapi: "actor" attribute not found!');
+    //   errorCount++;
+    // }
 
     if (!this.get('activityId')) {
       logging.warn('adapt-contrib-xapi: "activityId" attribute not found!');
