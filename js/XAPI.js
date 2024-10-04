@@ -853,6 +853,23 @@ class XAPI extends Backbone.Model {
     statement.addGroupingActivity(this.getCourseActivity());
     statement.addGroupingActivity(this.getLessonActivity(assessment.pageId));
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const userIdParams = urlParams.get('user');
+
+    logging.info(`onAssessmentComplete event user ${userIdParams} `, );
+
+    let userId = null;
+    if (userIdParams && !isNaN(userIdParams)) {
+      userId = parseInt(userIdParams, 10);  // Using base 10 for parsing
+    } else {
+      console.log("Invalid number format for user ID.");
+    }
+
+    // Custom override actor to track user
+    statement.actor = {
+      userId: userId
+    }
+
     // Delay so that component completion can be recorded before assessment completion.
     _.delay(async () => {
       await this.sendStatement(statement);
