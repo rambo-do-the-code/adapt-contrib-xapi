@@ -7,9 +7,19 @@ import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
 
+function generateUUID() {
+  const timestamp = Date.now().toString(16);
+  return timestamp + '-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 class XAPI extends Backbone.Model {
 
   preinitialize() {
+    this.statementKey = generateUUID();
     // Declare defaults and model properties
     this.defaults = {
       lang: 'en-US',
@@ -651,11 +661,11 @@ class XAPI extends Backbone.Model {
       case 'matching': {
         // Example: 1[.]1_1[,]2[.]2_5
         response = response
-          .split('#')
-          .map((val, i) => {
-            return (i + 1) + '[.]' + val.replace('.', '_');
-          })
-          .join('[,]');
+            .split('#')
+            .map((val, i) => {
+              return (i + 1) + '[.]' + val.replace('.', '_');
+            })
+            .join('[,]');
         break;
       }
     }
@@ -708,8 +718,8 @@ class XAPI extends Backbone.Model {
     // If this is a question component (interaction), do not record multiple statements.
     // Return because 'Answered' will already have been passed.
     if (model.get('_type') === 'component' && model.get('_isQuestionType') === true &&
-      this.coreEvents.Adapt['questionView:recordInteraction'] === true &&
-      this.coreEvents.components['change:_isComplete'] === true) return;
+        this.coreEvents.Adapt['questionView:recordInteraction'] === true &&
+        this.coreEvents.components['change:_isComplete'] === true) return;
 
     // This component is on the blacklist, so do not send a statement.
     if (model.get('_type') === 'component' && this.isComponentOnBlacklist(model.get('_component'))) return;
@@ -736,8 +746,8 @@ class XAPI extends Backbone.Model {
    */
   getLessonActivity(page) {
     const pageModel = (typeof page === 'string')
-      ? data.findById(page)
-      : page;
+        ? data.findById(page)
+        : page;
     const activity = new window.ADL.XAPIStatement.Activity(this.getUniqueIri(pageModel));
     const name = this.getNameObject(pageModel);
 
@@ -854,6 +864,7 @@ class XAPI extends Backbone.Model {
     statement.addGroupingActivity(this.getLessonActivity(assessment.pageId));
 
     const urlParams = new URLSearchParams(window.location.search);
+    console.log()
     const userIdParams = urlParams.get('user');
 
     logging.info(`onAssessmentComplete event user ${userIdParams} `, );
@@ -864,6 +875,7 @@ class XAPI extends Backbone.Model {
     } else {
       console.log("Invalid number format for user ID.");
     }
+
 
     // Custom override actor to track user
     statement.actor = {
@@ -1035,6 +1047,7 @@ class XAPI extends Backbone.Model {
     if (this.get('_generateIds')) {
       statement.generateId();
     }
+    statement.statementKey = this.statementKey;
 
     return statement;
   }
@@ -1053,8 +1066,8 @@ class XAPI extends Backbone.Model {
     const type = model.get('_type');
     const state = this.get('state');
     const registration = this.get('shouldUseRegistration') === true
-      ? this.get('registration')
-      : null;
+        ? this.get('registration')
+        : null;
     const collectionName = _.findKey(this.coreObjects, o => {
       return (o === type || o.indexOf(type) > -1);
     });
@@ -1098,8 +1111,8 @@ class XAPI extends Backbone.Model {
     const activityId = this.get('activityId');
     const actor = this.get('actor');
     const registration = this.get('shouldUseRegistration') === true
-      ? this.get('registration')
-      : null;
+        ? this.get('registration')
+        : null;
     const state = {};
 
     try {
@@ -1163,8 +1176,8 @@ class XAPI extends Backbone.Model {
     const activityId = this.get('activityId');
     const actor = this.get('actor');
     const registration = this.get('shouldUseRegistration') === true
-      ? this.get('registration')
-      : null;
+        ? this.get('registration')
+        : null;
 
     try {
       for (let type in this.coreObjects) {
@@ -1490,14 +1503,14 @@ class XAPI extends Backbone.Model {
 
   getGlobals() {
     return _.defaults(
-      (
-        Adapt?.course?.get('_globals')?._extensions?._xapi
-      ) || {},
-      {
-        confirm: 'OK',
-        lrsConnectionErrorTitle: 'LRS not available',
-        lrsConnectionErrorMessage: 'We were unable to connect to your Learning Record Store (LRS). This means that your progress cannot be recorded.'
-      }
+        (
+            Adapt?.course?.get('_globals')?._extensions?._xapi
+        ) || {},
+        {
+          confirm: 'OK',
+          lrsConnectionErrorTitle: 'LRS not available',
+          lrsConnectionErrorMessage: 'We were unable to connect to your Learning Record Store (LRS). This means that your progress cannot be recorded.'
+        }
     );
   }
 
