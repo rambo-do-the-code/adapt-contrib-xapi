@@ -18,9 +18,10 @@ function generateUUID() {
 
 function extractPageIdFromCurrentUrl() {
   const url = window.location.href;
-  const match = url.match(//id/([a-zA-Z0-9]+)/);
+  const match = url.match(/\/id\/([a-zA-Z0-9]+)/);
   return match ? match[1] : null;
 }
+
 
 class XAPI extends Backbone.Model {
 
