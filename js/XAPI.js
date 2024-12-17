@@ -22,11 +22,27 @@ function extractPageIdFromCurrentUrl() {
   return match ? match[1] : null;
 }
 
+function getActorData() {
+  const params = new URLSearchParams(window.location.search);
+
+  const actor = {
+    user: params.get('user'),
+    schoolId: params.get('school'),
+    sessionId: params.get('session'),
+    mode: params.get('mode'),
+    resourceId: params.get('resource')
+  };
+
+  logging.info('getActorData:', JSON.stringify(actor, null, 2));
+  return actor;
+}
+
+
 
 class XAPI extends Backbone.Model {
 
   preinitialize() {
-    this.statementKey = generateUUID();
+    this.actorData = getActorData();
     // Declare defaults and model properties
     this.defaults = {
       lang: 'en-US',
@@ -315,8 +331,8 @@ class XAPI extends Backbone.Model {
   }
 
   /**
-  * Check Wrapper to see if all parameters needed are set.
-  */
+   * Check Wrapper to see if all parameters needed are set.
+   */
   checkWrapperConfig() {
     const lrs = this.xapiWrapper.lrs;
     if (lrs.endpoint && lrs.actor && lrs.auth && lrs.activity_id) return true;
@@ -870,24 +886,16 @@ class XAPI extends Backbone.Model {
     statement.addGroupingActivity(this.getCourseActivity());
     statement.addGroupingActivity(this.getLessonActivity(assessment.pageId));
 
-    const urlParams = new URLSearchParams(window.location.search);
-    console.log()
-    const userIdParams = urlParams.get('user');
-
-    logging.info(`onAssessmentComplete event user ${userIdParams} `, );
-
-    let userId = null;
-    if (userIdParams && !isNaN(userIdParams)) {
-      userId = parseInt(userIdParams, 10);  // Using base 10 for parsing
-    } else {
-      console.log("Invalid number format for user ID.");
-    }
-
-
-    // Custom override actor to track user
-    statement.actor = {
-      userId: userId
-    }
+    // const urlParams = new URLSearchParams(window.location.search);
+    // const userIdParams = urlParams.get('user');
+    // const schoolIdParams = urlParams.get('school');
+    //
+    // logging.info(`onAssessmentComplete event user ${userIdParams} schoolId  ${schoolIdParams}`);
+    // // Custom override actor to track user
+    // statement.actor = {
+    //   userId: userIdParams,
+    //   schoolId: schoolIdParams
+    // };
 
     // Delay so that component completion can be recorded before assessment completion.
     _.delay(async () => {
@@ -1054,8 +1062,8 @@ class XAPI extends Backbone.Model {
     if (this.get('_generateIds')) {
       statement.generateId();
     }
-    statement.statementKey = this.statementKey;
     statement.pageId = extractPageIdFromCurrentUrl();
+    statement.actor = this.actorData;
 
     return statement;
   }
