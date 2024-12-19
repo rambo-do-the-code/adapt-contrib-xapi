@@ -6,14 +6,8 @@ import XAPI from './XAPI';
 
 class XAPIIndex extends Backbone.Controller {
 
-  async initialize() {
+  initialize() {
     this.listenTo(Adapt, 'app:dataLoaded', this.onDataLoaded);
-
-    const xapi = await XAPI.getInstance();
-    window.addEventListener('message', (event) => {
-       xapi.submitGradeFromICMS(event);
-       xapi.responseScoreToICMS(event);
-    });
   }
 
   async onDataLoaded() {
@@ -24,6 +18,10 @@ class XAPIIndex extends Backbone.Controller {
     }
 
     const xapi = await XAPI.getInstance();
+    window.addEventListener('message', (event) => {
+      xapi.submitGradeFromICMS(event);
+      xapi.responseScoreToICMS(event);
+    });
 
     xapi.listenTo(Adapt, {
       'adapt:initialize': xapi.setupListeners,

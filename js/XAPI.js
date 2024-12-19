@@ -7,6 +7,19 @@ import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
 
+
+var finishScore = {
+  courseId: "",
+  courseName: "",
+  sessionId: "",
+  schoolId: "",
+  user: "",
+  resourceId: "",
+  mode: "",
+  pages: []
+};
+var icmsBESyncUrl= 'https://icmsauthoringbe.schoolux.ai/authoring-admin/public/sync/v1/finish';
+
 function generateUUID() {
   const timestamp = Date.now().toString(16);
   return timestamp + '-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -42,6 +55,8 @@ function getActorData() {
 class XAPI extends Backbone.Model {
 
   preinitialize() {
+    // clear finishScore local storage
+    // localStorage.removeItem('finishScore');
     this.actorData = getActorData();
     // Declare defaults and model properties
     this.defaults = {
@@ -271,23 +286,23 @@ class XAPI extends Backbone.Model {
 
 
   async  responseScoreToICMS(event){
-    if (event.origin !== this.linkICMS) return; 
+    if (event.origin !== this.linkICMS) return;
     if(event.data.type === 'score') {
-      const message = { type: 'responseScore', data: { score: 1}};
+      const message = { type: 'responseScore', data: finishScore};
       window.parent.postMessage(message, '*');
     }
   }
 
 
- async  submitGradeFromICMS(event){
-    if (event.origin !== this.linkICMS) return; 
+  async  submitGradeFromICMS(event){
+    if (event.origin !== this.linkICMS) return;
     if (event.data.type === 'submitGrade') {
-      // logic score ở đây 
+      logging.info('postFinishScore:', JSON.stringify(finishScore, null, 2));
 
-      // gọi backend  rồi trả data
+      // submit event post data to be
+      await this.postFinishScore();
 
-
-      const message = { type: 'responseSubmit', data: { score: 1}};
+      const message = { type: 'responseSubmit', data: "submit finish score"};
       window.parent.postMessage(message, '*');
     }
   }
@@ -623,7 +638,7 @@ class XAPI extends Backbone.Model {
    */
   async onQuestionInteraction(view) {
     if ((!view.model || view.model.get('_type') !== 'component') &&
-      !view.model.get('_isQuestionType')) return;
+        !view.model.get('_isQuestionType')) return;
 
     // This component is on the blacklist, so do not send a statement.
     if (this.isComponentOnBlacklist(view.model.get('_component'))) return;
@@ -703,6 +718,10 @@ class XAPI extends Backbone.Model {
     switch (responseType) {
       case 'choice': {
         response = response.replace(/,|#/g, '[,]');
+
+
+
+
 
         break;
       }
@@ -911,17 +930,6 @@ class XAPI extends Backbone.Model {
     statement.addGroupingActivity(this.getCourseActivity());
     statement.addGroupingActivity(this.getLessonActivity(assessment.pageId));
 
-    // const urlParams = new URLSearchParams(window.location.search);
-    // const userIdParams = urlParams.get('user');
-    // const schoolIdParams = urlParams.get('school');
-    //
-    // logging.info(`onAssessmentComplete event user ${userIdParams} schoolId  ${schoolIdParams}`);
-    // // Custom override actor to track user
-    // statement.actor = {
-    //   userId: userIdParams,
-    //   schoolId: schoolIdParams
-    // };
-
     // Delay so that component completion can be recorded before assessment completion.
     _.delay(async () => {
       await this.sendStatement(statement);
@@ -1071,9 +1079,9 @@ class XAPI extends Backbone.Model {
    */
   getStatement(verb, object, result, context) {
     const statement = new window.ADL.XAPIStatement(
-      new window.ADL.XAPIStatement.Agent(this.get('actor')),
-      verb,
-      object
+        new window.ADL.XAPIStatement.Agent(this.get('actor')),
+        verb,
+        object
     );
 
     if (result && Object.keys(result).length > 0) {
@@ -1365,6 +1373,7 @@ class XAPI extends Backbone.Model {
     return true;
   }
 
+
   /**
    * Prepares to send a single xAPI statement to the LRS.
    * @param {ADL.XAPIStatement} statement - A valid ADL.XAPIStatement object.
@@ -1382,8 +1391,103 @@ class XAPI extends Backbone.Model {
     if (!attachments && statement.attachments) {
       return await this.processAttachments(statement);
     }
+    // add custom logic finish score
+    this.addResultToFinishScore(statement);
+
     await this.onStatementReady(statement, attachments);
   }
+
+  postFinishScore() {
+    fetch(icmsBESyncUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(finishScore)
+    })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Success:', data);
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+        });
+  }
+
+  // custom finish score
+  addResultToFinishScore(statement) {
+    if (statement.pageId) {
+      // find the page by pageId
+      let page = finishScore.pages.find(page => page.pageId === statement.pageId);
+      const isCompletePage = this.hasAssessmentKeyInUrl(statement.object.id);
+
+      // if the page does not exist, add it to the pages array
+      if (!page) {
+        page = {
+          pageId: statement.pageId,
+          pageName: "Page name",
+          startTime: Date.now(),
+          endTime: null,
+          components: []
+        };
+        finishScore.pages.push(page);
+      }
+
+      // if the statement has a result and the page exists, add component details
+      if (statement.hasOwnProperty('result')) {
+        if (isCompletePage) {
+          page.endTime = Date.now();
+        } else {
+          const componentId = this.extractComponentId(statement.object.id);
+          const component = {
+            componentId: componentId,
+            maxScore: statement.result?.score?.max ?? 0,
+            rawScore: statement.result?.score?.raw ?? null,
+            answer: statement.result?.response ?? null,
+            success: statement.result?.success ?? null,
+            completion: statement.result?.completion ?? null,
+            startTime: page.startTime ?? null,
+            endTime: Date.now() ?? null
+          };
+          page.components.push(component);
+        }
+      }
+
+      // save finishScore to local storage
+      try {
+        localStorage.setItem('finishScore', JSON.stringify(finishScore));
+      } catch (e) {
+        console.error("Error saving finishScore to localStorage:", e);
+      }
+    }
+  }
+
+
+  hasAssessmentKeyInUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      const fragment = urlObj.hash;
+
+      // Combine path and fragment for the search
+      const combined = path + (fragment ? fragment : "");
+
+      // Use the 'i' flag for case-insensitive matching
+      const pattern = /\/Assessment\/([^/]+)/i;
+      return pattern.test(combined);
+    } catch (e) {
+      return false;
+    }
+  }
+
+
+  extractComponentId(url) {
+    // Match the UUID pattern at the end of the URL after "/id/"
+    const match = url.match(/\/id\/([a-f0-9]{24})/);
+    // If match found, return the UUID, otherwise return null
+    return match ? match[1] : null;
+  }
+
 
   /**
    * Sends statements using the Fetch API in order to make use of the keepalive
