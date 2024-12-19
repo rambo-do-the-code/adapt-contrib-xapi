@@ -64,6 +64,8 @@ class XAPI extends Backbone.Model {
     this.courseDescription = '';
     this.defaultLang = 'en-US';
     this.isComplete = false;
+    this.linkICMS = "https://icms.schoolux.ai/"
+
 
     // Default events to send statements for.
     this.coreEvents = {
@@ -265,6 +267,29 @@ class XAPI extends Backbone.Model {
     });
 
     this.xapiWrapper.strictCallbacks = true;
+  }
+
+
+  async  responseScoreToICMS(event){
+    if (event.origin !== this.linkICMS) return; 
+    if(event.data.type === 'score') {
+      const message = { type: 'responseScore', data: { score: 1}};
+      window.parent.postMessage(message, '*');
+    }
+  }
+
+
+ async  submitGradeFromICMS(event){
+    if (event.origin !== this.linkICMS) return; 
+    if (event.data.type === 'submitGrade') {
+      // logic score ở đây 
+
+      // gọi backend  rồi trả data
+
+
+      const message = { type: 'responseSubmit', data: { score: 1}};
+      window.parent.postMessage(message, '*');
+    }
   }
 
   /**
