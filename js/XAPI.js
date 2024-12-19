@@ -7,42 +7,9 @@ import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
 
-function generateUUID() {
-  const timestamp = Date.now().toString(16);
-  return timestamp + '-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-function extractPageIdFromCurrentUrl() {
-  const url = window.location.href;
-  const match = url.match(/\/id\/([a-zA-Z0-9]+)/);
-  return match ? match[1] : null;
-}
-
-function getActorData() {
-  const params = new URLSearchParams(window.location.search);
-
-  const actor = {
-    user: params.get('user'),
-    schoolId: params.get('school'),
-    sessionId: params.get('session'),
-    mode: params.get('mode'),
-    resourceId: params.get('resource')
-  };
-
-  logging.info('getActorData:', JSON.stringify(actor, null, 2));
-  return actor;
-}
-
-
-
 class XAPI extends Backbone.Model {
 
   preinitialize() {
-    this.actorData = getActorData();
     // Declare defaults and model properties
     this.defaults = {
       lang: 'en-US',
@@ -64,8 +31,6 @@ class XAPI extends Backbone.Model {
     this.courseDescription = '';
     this.defaultLang = 'en-US';
     this.isComplete = false;
-    this.linkICMS = "https://icms.schoolux.ai/"
-
 
     // Default events to send statements for.
     this.coreEvents = {
@@ -269,29 +234,6 @@ class XAPI extends Backbone.Model {
     this.xapiWrapper.strictCallbacks = true;
   }
 
-
-  async  responseScoreToICMS(event){
-    if (event.origin !== this.linkICMS) return; 
-    if(event.data.type === 'score') {
-      const message = { type: 'responseScore', data: { score: 1}};
-      window.parent.postMessage(message, '*');
-    }
-  }
-
-
- async  submitGradeFromICMS(event){
-    if (event.origin !== this.linkICMS) return; 
-    if (event.data.type === 'submitGrade') {
-      // logic score ở đây 
-
-      // gọi backend  rồi trả data
-
-
-      const message = { type: 'responseSubmit', data: { score: 1}};
-      window.parent.postMessage(message, '*');
-    }
-  }
-
   /**
    * Triggers 'plugin:endWait' event (if required).
    */
@@ -356,8 +298,8 @@ class XAPI extends Backbone.Model {
   }
 
   /**
-   * Check Wrapper to see if all parameters needed are set.
-   */
+  * Check Wrapper to see if all parameters needed are set.
+  */
   checkWrapperConfig() {
     const lrs = this.xapiWrapper.lrs;
     if (lrs.endpoint && lrs.actor && lrs.auth && lrs.activity_id) return true;
@@ -709,11 +651,11 @@ class XAPI extends Backbone.Model {
       case 'matching': {
         // Example: 1[.]1_1[,]2[.]2_5
         response = response
-            .split('#')
-            .map((val, i) => {
-              return (i + 1) + '[.]' + val.replace('.', '_');
-            })
-            .join('[,]');
+          .split('#')
+          .map((val, i) => {
+            return (i + 1) + '[.]' + val.replace('.', '_');
+          })
+          .join('[,]');
         break;
       }
     }
@@ -766,8 +708,8 @@ class XAPI extends Backbone.Model {
     // If this is a question component (interaction), do not record multiple statements.
     // Return because 'Answered' will already have been passed.
     if (model.get('_type') === 'component' && model.get('_isQuestionType') === true &&
-        this.coreEvents.Adapt['questionView:recordInteraction'] === true &&
-        this.coreEvents.components['change:_isComplete'] === true) return;
+      this.coreEvents.Adapt['questionView:recordInteraction'] === true &&
+      this.coreEvents.components['change:_isComplete'] === true) return;
 
     // This component is on the blacklist, so do not send a statement.
     if (model.get('_type') === 'component' && this.isComponentOnBlacklist(model.get('_component'))) return;
@@ -794,8 +736,8 @@ class XAPI extends Backbone.Model {
    */
   getLessonActivity(page) {
     const pageModel = (typeof page === 'string')
-        ? data.findById(page)
-        : page;
+      ? data.findById(page)
+      : page;
     const activity = new window.ADL.XAPIStatement.Activity(this.getUniqueIri(pageModel));
     const name = this.getNameObject(pageModel);
 
@@ -910,17 +852,6 @@ class XAPI extends Backbone.Model {
 
     statement.addGroupingActivity(this.getCourseActivity());
     statement.addGroupingActivity(this.getLessonActivity(assessment.pageId));
-
-    // const urlParams = new URLSearchParams(window.location.search);
-    // const userIdParams = urlParams.get('user');
-    // const schoolIdParams = urlParams.get('school');
-    //
-    // logging.info(`onAssessmentComplete event user ${userIdParams} schoolId  ${schoolIdParams}`);
-    // // Custom override actor to track user
-    // statement.actor = {
-    //   userId: userIdParams,
-    //   schoolId: schoolIdParams
-    // };
 
     // Delay so that component completion can be recorded before assessment completion.
     _.delay(async () => {
@@ -1087,8 +1018,6 @@ class XAPI extends Backbone.Model {
     if (this.get('_generateIds')) {
       statement.generateId();
     }
-    statement.pageId = extractPageIdFromCurrentUrl();
-    statement.actor = this.actorData;
 
     return statement;
   }
@@ -1107,8 +1036,8 @@ class XAPI extends Backbone.Model {
     const type = model.get('_type');
     const state = this.get('state');
     const registration = this.get('shouldUseRegistration') === true
-        ? this.get('registration')
-        : null;
+      ? this.get('registration')
+      : null;
     const collectionName = _.findKey(this.coreObjects, o => {
       return (o === type || o.indexOf(type) > -1);
     });
@@ -1152,8 +1081,8 @@ class XAPI extends Backbone.Model {
     const activityId = this.get('activityId');
     const actor = this.get('actor');
     const registration = this.get('shouldUseRegistration') === true
-        ? this.get('registration')
-        : null;
+      ? this.get('registration')
+      : null;
     const state = {};
 
     try {
@@ -1217,8 +1146,8 @@ class XAPI extends Backbone.Model {
     const activityId = this.get('activityId');
     const actor = this.get('actor');
     const registration = this.get('shouldUseRegistration') === true
-        ? this.get('registration')
-        : null;
+      ? this.get('registration')
+      : null;
 
     try {
       for (let type in this.coreObjects) {
@@ -1348,10 +1277,10 @@ class XAPI extends Backbone.Model {
   validateProps() {
     let errorCount = 0;
 
-    // if (!this.get('actor') || typeof this.get('actor') !== 'object') {
-    //   logging.warn('adapt-contrib-xapi: "actor" attribute not found!');
-    //   errorCount++;
-    // }
+    if (!this.get('actor') || typeof this.get('actor') !== 'object') {
+      logging.warn('adapt-contrib-xapi: "actor" attribute not found!');
+      errorCount++;
+    }
 
     if (!this.get('activityId')) {
       logging.warn('adapt-contrib-xapi: "activityId" attribute not found!');
@@ -1544,14 +1473,14 @@ class XAPI extends Backbone.Model {
 
   getGlobals() {
     return _.defaults(
-        (
-            Adapt?.course?.get('_globals')?._extensions?._xapi
-        ) || {},
-        {
-          confirm: 'OK',
-          lrsConnectionErrorTitle: 'LRS not available',
-          lrsConnectionErrorMessage: 'We were unable to connect to your Learning Record Store (LRS). This means that your progress cannot be recorded.'
-        }
+      (
+        Adapt?.course?.get('_globals')?._extensions?._xapi
+      ) || {},
+      {
+        confirm: 'OK',
+        lrsConnectionErrorTitle: 'LRS not available',
+        lrsConnectionErrorMessage: 'We were unable to connect to your Learning Record Store (LRS). This means that your progress cannot be recorded.'
+      }
     );
   }
 
