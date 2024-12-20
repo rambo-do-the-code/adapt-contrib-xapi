@@ -286,7 +286,7 @@ class XAPI extends Backbone.Model {
 
 
   async  responseScoreToICMS(event){
-    if (event.origin !== this.linkICMS) return;
+    // if (event.origin !== this.linkICMS) return;
     if(event.data.type === 'score') {
 
       logging.info('event get finish score:', JSON.stringify(finishScore, null, 2));
@@ -298,7 +298,7 @@ class XAPI extends Backbone.Model {
 
 
   async  submitGradeFromICMS(event){
-    if (event.origin !== this.linkICMS) return;
+    // if (event.origin !== this.linkICMS) return;
     if (event.data.type === 'submitGrade') {
 
       logging.info('event submit finish score:', JSON.stringify(finishScore, null, 2));
