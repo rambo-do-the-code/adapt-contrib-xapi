@@ -13,15 +13,15 @@ class XAPIIndex extends Backbone.Controller {
   async onDataLoaded() {
     const config = Adapt.config.get('_xapi') || {};
 
-    if (!config._isEnabled) {
-      return;
-    }
-
     const xapi = await XAPI.getInstance();
     window.addEventListener('message', (event) => {
       xapi.submitGradeFromICMS(event);
       xapi.responseScoreToICMS(event);
     });
+
+    if (!config._isEnabled) {
+      return;
+    }
 
     xapi.listenTo(Adapt, {
       'adapt:initialize': xapi.setupListeners,
