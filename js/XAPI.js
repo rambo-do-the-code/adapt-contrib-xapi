@@ -35,19 +35,30 @@ function extractPageIdFromCurrentUrl() {
   return match ? match[1] : null;
 }
 
+function getCourseUUID(url) {
+    const match = url.match(/\/course\/([a-z0-9]+)\//i);
+    return match ? match[1] : null;
+}
+
 function getActorData() {
-  const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
 
-  const actor = {
-    user: params.get('user'),
-    schoolId: params.get('school'),
-    sessionId: params.get('session'),
-    mode: params.get('mode'),
-    resourceId: params.get('resource')
-  };
-
-  logging.info('getActorData:', JSON.stringify(actor, null, 2));
-  return actor;
+    const actor = {
+        user: params.get('user'),
+        schoolId: params.get('school'),
+        sessionId: params.get('session'),
+        mode: params.get('mode'),
+        resourceId: params.get('resource')
+    };
+    // set actor to finish score
+    finishScore.user = params.get('user')
+    finishScore.schoolId = params.get('school')
+    finishScore.sessionId = params.get('session')
+    finishScore.mode = params.get('mode')
+    finishScore.resourceId = params.get('resource')
+    finishScore.courseId = getCourseUUID(window.location.href);
+    logging.info('getActorData:', JSON.stringify(actor, null, 2));
+    return actor;
 }
 
 
@@ -159,6 +170,7 @@ class XAPI extends Backbone.Model {
 
     this.startTimeStamp = new Date();
     this.courseName = Adapt.course.get('displayTitle') || Adapt.course.get('title');
+    finishScore.courseName = Adapt.course.get('displayTitle') || Adapt.course.get('title');
     this.courseDescription = Adapt.course.get('description') || '';
 
     // Send the 'launched' and 'initialized' statements.
