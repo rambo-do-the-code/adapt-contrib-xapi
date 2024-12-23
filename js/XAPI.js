@@ -7,7 +7,7 @@ import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
 
-
+var sessionToken = '';
 var finishScore = {
   courseId: "",
   courseName: "",
@@ -41,24 +41,24 @@ function getCourseUUID(url) {
 }
 
 function getActorData() {
-    const params = new URLSearchParams(window.location.search);
-
-    const actor = {
-        user: params.get('user'),
-        schoolId: params.get('school'),
-        sessionId: params.get('session'),
-        mode: params.get('mode'),
-        resourceId: params.get('resource')
-    };
-    // set actor to finish score
-    finishScore.user = params.get('user')
-    finishScore.schoolId = params.get('school')
-    finishScore.sessionId = params.get('session')
-    finishScore.mode = params.get('mode')
-    finishScore.resourceId = params.get('resource')
-    finishScore.courseId = getCourseUUID(window.location.href);
-    logging.info('getActorData:', JSON.stringify(actor, null, 2));
-    return actor;
+  const params = new URLSearchParams(window.location.search);
+  sessionToken = `Bearer ${params.get('sessionToken')}`
+  const actor = {
+    user: params.get('user'),
+    schoolId: params.get('school'),
+    sessionId: params.get('session'),
+    mode: params.get('mode'),
+    resourceId: params.get('resource')
+  };
+  // set actor to finish score
+  finishScore.user = params.get('user')
+  finishScore.schoolId = params.get('school')
+  finishScore.sessionId = params.get('session')
+  finishScore.mode = params.get('mode')
+  finishScore.resourceId = params.get('resource')
+  finishScore.courseId = getCourseUUID(window.location.href);
+  logging.info('getActorData:', JSON.stringify(actor, null, 2));
+  return actor;
 }
 
 
@@ -1577,6 +1577,9 @@ class XAPI extends Backbone.Model {
    * @param {array} [attachments] - An array of attachments to pass to the LRS.
    */
   async onStatementReady(statement, attachments) {
+    // custom session token
+    this.xapiWrapper.lrs.auth = sessionToken;
+
     const sendStatementCallback = (error, res, body) => {
       if (error) {
         Adapt.trigger('xapi:lrs:sendStatement:error', error);
