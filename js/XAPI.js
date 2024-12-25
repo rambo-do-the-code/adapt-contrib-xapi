@@ -5,8 +5,10 @@ import logging from 'core/js/logging';
 import notify from 'core/js/notify';
 import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
+import Swal from  'libraries/sweet-alert.min';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
 
+var validateToken = false;
 var sessionToken = '';
 var finishScore = {
   courseId: "",
@@ -18,7 +20,7 @@ var finishScore = {
   mode: "",
   pages: []
 };
-var icmsBESyncUrl= 'https://icmsauthoringbe.schoolux.ai/authoring-admin/public/sync/v1/finish';
+var icmsBESyncUrl= 'https://icmsauthoringbe.schoolux.ai/authoring-admin';
 
 function generateUUID() {
   const timestamp = Date.now().toString(16);
@@ -27,6 +29,19 @@ function generateUUID() {
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
+}
+
+async function postValidateSessionToken() {
+  const response = await fetch(icmsBESyncUrl + '/public/session/v1/validate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sessionToken: sessionToken
+    })
+  });
+  return response.json();
 }
 
 function extractPageIdFromCurrentUrl() {
@@ -42,7 +57,7 @@ function getCourseUUID(url) {
 
 function getActorData() {
   const params = new URLSearchParams(window.location.search);
-  sessionToken = `Bearer ${params.get('sessionToken')}`
+  sessionToken = params.get('sessionToken');
   const actor = {
     user: params.get('user'),
     schoolId: params.get('school'),
@@ -129,6 +144,20 @@ class XAPI extends Backbone.Model {
   /** Implementation starts here */
   async initialize() {
     if (!this.getConfig('_isEnabled')) return this;
+    // custom logic validate token
+    postValidateSessionToken().then((data) => {
+      if (data.success) {
+        validateToken = true;
+      }else {
+        Swal.fire({
+          title: 'Session Validation Failed!',
+          text: 'Continue in offline mode? Unsaved progress will not be saved.',
+          icon: 'error',
+          confirmButtonText: 'OK'
+        });
+        return this;
+      }
+    });
 
     wait.begin();
 
@@ -1396,7 +1425,7 @@ class XAPI extends Backbone.Model {
    * @param {array} [attachments] - An array of attachments to pass to the LRS.
    */
   async sendStatement(statement, attachments = null) {
-    if (!statement) {
+    if (!statement || !validateToken) {
       return;
     }
 
@@ -1414,7 +1443,7 @@ class XAPI extends Backbone.Model {
   }
 
   postFinishScore() {
-    fetch(icmsBESyncUrl, {
+    fetch(icmsBESyncUrl+'/public/sync/v1/finish', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1577,8 +1606,8 @@ class XAPI extends Backbone.Model {
    * @param {array} [attachments] - An array of attachments to pass to the LRS.
    */
   async onStatementReady(statement, attachments) {
-    // custom session token
-    this.xapiWrapper.lrs.auth = sessionToken;
+
+    this.xapiWrapper.lrs.auth =  `Bearer ${sessionToken}`;
 
     const sendStatementCallback = (error, res, body) => {
       if (error) {
@@ -1647,7 +1676,7 @@ class XAPI extends Backbone.Model {
    * @param {ADL.XAPIStatement[]} statements - An array of valid ADL.XAPIStatement objects.
    */
   async sendStatements(statements) {
-    if (!statements || statements.length === 0) {
+    if (!statements || statements.length === 0 || validateToken) {
       return;
     }
 
