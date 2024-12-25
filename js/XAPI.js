@@ -144,20 +144,25 @@ class XAPI extends Backbone.Model {
   /** Implementation starts here */
   async initialize() {
     if (!this.getConfig('_isEnabled')) return this;
-    // custom logic validate token
-    postValidateSessionToken().then((data) => {
-      if (data.success) {
-        validateToken = true;
-      }else {
-        Swal.fire({
-          title: 'Session Validation Failed!',
-          text: 'Continue in offline mode? Unsaved progress will not be saved.',
-          icon: 'error',
-          confirmButtonText: 'OK'
-        });
-        return this;
-      }
-    });
+
+    // Check if the URL includes the keyword 'preview' it mean user in preview mode not need send data and validate token
+    const currentUrl = window.location.href;
+    if (!currentUrl.includes('preview')) {
+      // custom logic validate token
+      postValidateSessionToken().then((data) => {
+        if (data.success) {
+          validateToken = true;
+        }else {
+          Swal.fire({
+            title: 'Session Validation Failed!',
+            text: 'Continue in offline mode? Unsaved progress will not be saved.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
+          return this;
+        }
+      });
+    }
 
     wait.begin();
 
