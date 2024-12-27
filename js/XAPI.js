@@ -147,7 +147,9 @@ class XAPI extends Backbone.Model {
 
     // Check if the URL includes the keyword 'preview' it mean user in preview mode not need send data and validate token
     const currentUrl = window.location.href;
-    if (!currentUrl.includes('preview')) {
+    const url = new URL(currentUrl);
+    const hasSessionToken = url.searchParams.has('sessionToken');
+    if (hasSessionToken) {
       // custom logic validate token
       postValidateSessionToken().then((data) => {
         if (data.success) {
