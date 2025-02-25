@@ -20,7 +20,8 @@ var finishScore = {
   mode: "",
   pages: []
 };
-var icmsBESyncUrl= 'https://icmsauthoringbe.schoolux.ai/authoring-admin';
+var icmsBESyncUrlFinish= '';
+var icmsBESyncUrlValidateToken = '';
 
 function generateUUID() {
   const timestamp = Date.now().toString(16);
@@ -32,7 +33,7 @@ function generateUUID() {
 }
 
 async function postValidateSessionToken() {
-  const response = await fetch(icmsBESyncUrl + '/public/session/v1/validate', {
+  const response = await fetch(icmsBESyncUrlValidateToken, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -51,8 +52,8 @@ function extractPageIdFromCurrentUrl() {
 }
 
 function getCourseUUID(url) {
-    const match = url.match(/\/course\/([a-z0-9]+)\//i);
-    return match ? match[1] : null;
+  const match = url.match(/\/course\/([a-z0-9]+)\//i);
+  return match ? match[1] : null;
 }
 
 function getActorData() {
@@ -72,6 +73,8 @@ function getActorData() {
   finishScore.mode = params.get('mode')
   finishScore.resourceId = params.get('resource')
   finishScore.courseId = getCourseUUID(window.location.href);
+  icmsBESyncUrlFinish = `https://${params.get('callbackSync')}/authoring-admin/public/sync/v1/finish`;
+  icmsBESyncUrlValidateToken = `https://${params.get('callbackSync')}/public/session/v1/validate`;
   logging.info('getActorData:', JSON.stringify(actor, null, 2));
   return actor;
 }
@@ -105,7 +108,6 @@ class XAPI extends Backbone.Model {
     this.courseDescription = '';
     this.defaultLang = 'en-US';
     this.isComplete = false;
-    this.linkICMS = "https://icms.schoolux.ai/"
 
 
     // Default events to send statements for.
@@ -153,7 +155,44 @@ class XAPI extends Backbone.Model {
       // custom logic validate token
       postValidateSessionToken().then((data) => {
         if (data.success) {
+          // override actor and score finish
+
+          if (!data.data.user || !data.data.sessionId || !data.data.mode) {
+            // Show error for missing required parameters
+            Swal.fire({
+              title: 'Session Validation Failed',
+              text: 'Required parameters (user, session, mode) are missing. Switch to offline mode?',
+              icon: 'error',
+              confirmButtonText: 'OK'
+            });
+            return this;
+
+          } else if (data.data.mode !== 'test') {
+            Swal.fire({
+              title: 'Offline Mode',
+              text: 'Proceed in offline mode? Unsaved progress will be lost.',
+              icon: 'warning',
+              confirmButtonText: 'OK'
+            });
+            return this;
+          }
+
+          this.actorData = {
+            user: data.data.user,
+            schoolId:  data.data.schoolId,
+            sessionId: data.data.sessionId,
+            mode: data.data.mode,
+            resourceId: data.data.resourceId
+          }
+
+          finishScore.user = data.data.user;
+          finishScore.schoolId = data.data.schoolId;
+          finishScore.sessionId = data.data.sessionId;
+          finishScore.mode = data.data.mode;
+          finishScore.resourceId = data.data.resourceId;
+          // if this variable true it will send score to BE SYNC
           validateToken = true;
+
         }else {
           Swal.fire({
             title: 'Session Validation Failed!',
