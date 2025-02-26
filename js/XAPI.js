@@ -56,27 +56,13 @@ function getCourseUUID(url) {
   return match ? match[1] : null;
 }
 
-function getActorData() {
+function initImportantData() {
   const params = new URLSearchParams(window.location.search);
   sessionToken = params.get('sessionToken');
-  const actor = {
-    user: params.get('user'),
-    schoolId: params.get('school'),
-    sessionId: params.get('session'),
-    mode: params.get('mode'),
-    resourceId: params.get('resource')
-  };
-  // set actor to finish score
-  finishScore.user = params.get('user')
-  finishScore.schoolId = params.get('school')
-  finishScore.sessionId = params.get('session')
-  finishScore.mode = params.get('mode')
-  finishScore.resourceId = params.get('resource')
   finishScore.courseId = getCourseUUID(window.location.href);
-  icmsBESyncUrlFinish = `https://${params.get('callbackSync')}/authoring-admin/public/sync/v1/finish`;
-  icmsBESyncUrlValidateToken = `https://${params.get('callbackSync')}/public/session/v1/validate`;
-  logging.info('getActorData:', JSON.stringify(actor, null, 2));
-  return actor;
+  icmsBESyncUrlFinish = `https://${params.get('callbackSync')}/authoring-admin/external/sync/v1/finish`;
+  icmsBESyncUrlValidateToken = `https://${params.get('callbackSync')}/authoring-admin/public/session/v1/validate`;
+  logging.info('initImportantData run');
 }
 
 
@@ -86,7 +72,7 @@ class XAPI extends Backbone.Model {
   preinitialize() {
     // clear finishScore local storage
     // localStorage.removeItem('finishScore');
-    this.actorData = getActorData();
+    initImportantData();
     // Declare defaults and model properties
     this.defaults = {
       lang: 'en-US',
@@ -152,57 +138,64 @@ class XAPI extends Backbone.Model {
     const url = new URL(currentUrl);
     const hasSessionToken = url.searchParams.has('sessionToken');
     if (hasSessionToken) {
-      // custom logic validate token
-      postValidateSessionToken().then((data) => {
-        if (data.success) {
-          // override actor and score finish
+      // Custom logic to validate the session token
+      postValidateSessionToken()
+          .then((data) => {
+            if (data.success) {
+              // Check if required parameters are present
+              if (!data.data.params.user || !data.data.params.sessionId || !data.data.params.mode) {
+                // Show error for missing required parameters
+                Swal.fire({
+                  title: 'Session Validation Failed',
+                  text: 'Required parameters (user, session, mode) are missing. Switch to offline mode?',
+                  icon: 'error',
+                  confirmButtonText: 'OK'
+                });
+                logging.warn("--------------authoring Unsaved mode----------------");
+                return this;
+              } else if (data.data.params.mode !== 'test') {
+                // Warn user about offline mode
+                Swal.fire({
+                  title: 'Offline Mode',
+                  text: 'Proceed in offline mode? Unsaved progress will be lost.',
+                  icon: 'warning',
+                  confirmButtonText: 'OK'
+                });
+                logging.warn("--------------authoring Unsaved mode----------------");
+                return this;
+              }
+              finishScore.user = data.data.params.user;
+              finishScore.schoolId = data.data.params.schoolId;
+              finishScore.sessionId = data.data.params.sessionId;
+              finishScore.mode = data.data.params.mode;
+              finishScore.resourceId = data.data.params.resourceId;
 
-          if (!data.data.user || !data.data.sessionId || !data.data.mode) {
-            // Show error for missing required parameters
+              logging.info("---------------authoring test mode---------------");
+              // set validateToken to true to send score to backend
+              validateToken = true;
+            } else {
+              // show error when session validation fails
+              Swal.fire({
+                title: 'Session Validation Failed!',
+                text: 'Continue in offline mode? Unsaved progress will not be saved.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+              });
+              logging.warn("--------------authoring Unsaved mode----------------");
+              return this;
+            }
+          })
+          .catch((error) => {
+            // catch any unexpected errors (network issues, server errors, etc.)
             Swal.fire({
-              title: 'Session Validation Failed',
-              text: 'Required parameters (user, session, mode) are missing. Switch to offline mode?',
+              title: 'Error',
+              text: `An error occurred while validating the session: ${error.message}. Please try again later.`,
               icon: 'error',
               confirmButtonText: 'OK'
             });
+            logging.warn("--------------authoring Unsaved mode----------------");
             return this;
-
-          } else if (data.data.mode !== 'test') {
-            Swal.fire({
-              title: 'Offline Mode',
-              text: 'Proceed in offline mode? Unsaved progress will be lost.',
-              icon: 'warning',
-              confirmButtonText: 'OK'
-            });
-            return this;
-          }
-
-          this.actorData = {
-            user: data.data.user,
-            schoolId:  data.data.schoolId,
-            sessionId: data.data.sessionId,
-            mode: data.data.mode,
-            resourceId: data.data.resourceId
-          }
-
-          finishScore.user = data.data.user;
-          finishScore.schoolId = data.data.schoolId;
-          finishScore.sessionId = data.data.sessionId;
-          finishScore.mode = data.data.mode;
-          finishScore.resourceId = data.data.resourceId;
-          // if this variable true it will send score to BE SYNC
-          validateToken = true;
-
-        }else {
-          Swal.fire({
-            title: 'Session Validation Failed!',
-            text: 'Continue in offline mode? Unsaved progress will not be saved.',
-            icon: 'error',
-            confirmButtonText: 'OK'
           });
-          return this;
-        }
-      });
     }
 
     wait.begin();
@@ -1187,8 +1180,8 @@ class XAPI extends Backbone.Model {
       statement.generateId();
     }
     statement.pageId = extractPageIdFromCurrentUrl();
-    statement.actor = this.actorData;
-
+    //make sure actor always null we will process actor in BE SYNC by token extract
+    statement.actor = null;
     return statement;
   }
 
