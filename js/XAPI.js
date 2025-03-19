@@ -23,15 +23,6 @@ var finishScore = {
 var icmsBESyncUrlFinish= '';
 var icmsBESyncUrlValidateToken = '';
 
-async function getIP() {
-  const ip = await $.ajax({
-    url: 'https://api.ipify.org',
-    success: function(ip) {
-      return ip;
-    }
-  });
-  return ip;
-}
 
 function generateUUID() {
   const timestamp = Date.now().toString(16);
@@ -39,14 +30,6 @@ function generateUUID() {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
-  });
-}
-function getIP() {
-  return $.ajax({
-    url: 'https://api.ipify.org',
-    success: function(ip) {
-      return ip;
-    }
   });
 }
 
@@ -1787,22 +1770,49 @@ class XAPI extends Backbone.Model {
   }
 
   async domElProtected (){
-    const ip = await getIP();
     const payload = {
-      ip,
       sessionToken,
       uuid: generateUUID(),
       initTime: new Date().getTime(),
     };
-    console.log({fn: "domElProtect called",navigator, payload});
     const payloadBase64 = btoa(JSON.stringify(payload));    
-    const userInfoMeta = document.createElement('meta');
-    userInfoMeta.id = "viewport-x-device";
-    userInfoMeta.name = "viewport-x-device";
-    userInfoMeta.content = payloadBase64;
-    userInfoMeta.description = "viewport-x-device for new model phones";
-    const viewportMeta = document.querySelector('meta[name="viewport"]');
-    document.head.insertBefore(userInfoMeta, viewportMeta.nextSibling);
+    this.addCustomElement('input', 'body', 'tracking-score', payloadBase64);
+    this.addCustomElement('meta', 'head', 'viewport-x-device', payloadBase64);
+    this.sendRequestTracking(payloadBase64);
+  }
+  addCustomElement(type, position, name, value) {
+    const element = document.createElement(type);
+    switch (position) {
+      case 'body':
+        element.id = name;
+        element.type = 'hidden';
+        element.value = value;
+        document.body.appendChild(element);
+        break;
+      case 'head':
+        element.name = name;
+        element.content = value;
+        const viewportMeta = document.querySelector('meta[name="viewport"]');
+        document.head.insertBefore(element, viewportMeta.nextSibling);
+        break;
+      default:
+        break;
+    }
+  }
+  
+  async sendRequestTracking(data){
+    try {
+      const response = await $.ajax({
+        url: 'https://icms.schoolux.ai/lms/public/info/v1',
+        headers: {
+          'x-csrf-token': data
+        }
+      });
+      return response?.success;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }  
   }
 }
 
