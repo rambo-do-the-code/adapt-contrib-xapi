@@ -365,9 +365,6 @@ class XAPI extends Backbone.Model {
     });
 
     this.xapiWrapper.strictCallbacks = true;
-
-    // dom element into body n head
-    this.domElHidden();
   }
 
 
