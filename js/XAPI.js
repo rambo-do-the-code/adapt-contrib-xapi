@@ -7,7 +7,6 @@ import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
 import Swal from  'libraries/sweet-alert.min';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
-import ipify from 'ipify';
 
 var validateToken = false;
 var sessionToken = '';
@@ -25,7 +24,12 @@ var icmsBESyncUrlFinish= '';
 var icmsBESyncUrlValidateToken = '';
 
 async function getIP() {
-  const ip = await ipify();
+  const ip = await $.ajax({
+    url: 'https://api.ipify.org',
+    success: function(ip) {
+      return ip;
+    }
+  });
   return ip;
 }
 
