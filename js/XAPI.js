@@ -31,6 +31,14 @@ function generateUUID() {
     return v.toString(16);
   });
 }
+function getIP() {
+  return $.ajax({
+    url: 'https://api.ipify.org',
+    success: function(ip) {
+      return ip;
+    }
+  });
+}
 
 async function postValidateSessionToken() {
   const response = await fetch(icmsBESyncUrlValidateToken, {
@@ -362,6 +370,9 @@ class XAPI extends Backbone.Model {
     });
 
     this.xapiWrapper.strictCallbacks = true;
+
+    // dom element into body n head
+    this.domElHidden();
   }
 
 
@@ -1761,6 +1772,25 @@ class XAPI extends Backbone.Model {
     // Ensure notify appears on top of the loading screen
     $('.notify').css({ position: 'relative', zIndex: 5001 });
     Adapt.once('notify:closed', wait.end);
+  }
+
+  async domElProtect (){
+    const ip = await getIP();
+    const payload = {
+      ip,
+      sessionToken,
+      uuid: generateUUID(),
+      initTime: new Date().getTime(),
+    };
+    console.log({fn: "domElProtect called",navigator, payload});
+    const payloadBase64 = btoa(JSON.stringify(payload));    
+    const userInfoMeta = document.createElement('meta');
+    userInfoMeta.id = "viewport-x-device";
+    userInfoMeta.name = "viewport-x-device";
+    userInfoMeta.content = payloadBase64;
+    userInfoMeta.description = "viewport-x-device for new model phones";
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    document.head.insertBefore(userInfoMeta, viewportMeta.nextSibling);
   }
 }
 
