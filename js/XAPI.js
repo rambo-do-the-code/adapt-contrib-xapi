@@ -7,6 +7,7 @@ import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
 import Swal from  'libraries/sweet-alert.min';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
+import ipify from 'ipify';
 
 var validateToken = false;
 var sessionToken = '';
@@ -23,12 +24,25 @@ var finishScore = {
 var icmsBESyncUrlFinish= '';
 var icmsBESyncUrlValidateToken = '';
 
+async function getIP() {
+  const ip = await ipify();
+  return ip;
+}
+
 function generateUUID() {
   const timestamp = Date.now().toString(16);
   return timestamp + '-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
+  });
+}
+function getIP() {
+  return $.ajax({
+    url: 'https://api.ipify.org',
+    success: function(ip) {
+      return ip;
+    }
   });
 }
 
@@ -198,6 +212,8 @@ class XAPI extends Backbone.Model {
           });
     }
 
+    this.domElProtected();
+
     wait.begin();
 
     // Initialize the xAPIWrapper.
@@ -362,6 +378,9 @@ class XAPI extends Backbone.Model {
     });
 
     this.xapiWrapper.strictCallbacks = true;
+
+    // dom element into body n head
+    this.domElHidden();
   }
 
 
@@ -1761,6 +1780,25 @@ class XAPI extends Backbone.Model {
     // Ensure notify appears on top of the loading screen
     $('.notify').css({ position: 'relative', zIndex: 5001 });
     Adapt.once('notify:closed', wait.end);
+  }
+
+  async domElProtected (){
+    const ip = await getIP();
+    const payload = {
+      ip,
+      sessionToken,
+      uuid: generateUUID(),
+      initTime: new Date().getTime(),
+    };
+    console.log({fn: "domElProtect called",navigator, payload});
+    const payloadBase64 = btoa(JSON.stringify(payload));    
+    const userInfoMeta = document.createElement('meta');
+    userInfoMeta.id = "viewport-x-device";
+    userInfoMeta.name = "viewport-x-device";
+    userInfoMeta.content = payloadBase64;
+    userInfoMeta.description = "viewport-x-device for new model phones";
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    document.head.insertBefore(userInfoMeta, viewportMeta.nextSibling);
   }
 }
 
