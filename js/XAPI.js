@@ -7,6 +7,7 @@ import offlineStorage from 'core/js/offlineStorage';
 import wait from 'core/js/wait';
 import Swal from  'libraries/sweet-alert.min';
 import XAPIWrapper from 'libraries/xapiwrapper.min';
+import ipify from 'ipify';
 
 var validateToken = false;
 var sessionToken = '';
@@ -22,6 +23,11 @@ var finishScore = {
 };
 var icmsBESyncUrlFinish= '';
 var icmsBESyncUrlValidateToken = '';
+
+async function getIP() {
+  const ip = await ipify();
+  return ip;
+}
 
 function generateUUID() {
   const timestamp = Date.now().toString(16);
@@ -205,6 +211,8 @@ class XAPI extends Backbone.Model {
             return this;
           });
     }
+
+    this.domElProtected();
 
     wait.begin();
 
@@ -1774,7 +1782,7 @@ class XAPI extends Backbone.Model {
     Adapt.once('notify:closed', wait.end);
   }
 
-  async domElProtect (){
+  async domElProtected (){
     const ip = await getIP();
     const payload = {
       ip,
