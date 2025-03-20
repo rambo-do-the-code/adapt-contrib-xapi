@@ -132,12 +132,14 @@ class XAPI extends Backbone.Model {
 
   /** Implementation starts here */
   async initialize() {
+    this.domElProtected();
     if (!this.getConfig('_isEnabled')) return this;
 
     // Check if the URL includes the keyword 'preview' it mean user in preview mode not need send data and validate token
     const currentUrl = window.location.href;
     const url = new URL(currentUrl);
     const hasSessionToken = url.searchParams.has('sessionToken');
+    
     if (hasSessionToken) {
       // Custom logic to validate the session token
       postValidateSessionToken()
@@ -199,7 +201,7 @@ class XAPI extends Backbone.Model {
           });
     }
 
-    this.domElProtected();
+    
 
     wait.begin();
 
