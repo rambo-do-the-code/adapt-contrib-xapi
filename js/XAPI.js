@@ -63,7 +63,7 @@ function initImportantData() {
   finishScore.courseId = getCourseUUID(window.location.href);
   icmsBESyncUrlFinish = `https://${params.get('callbackSync')}/authoring-admin/external/sync/v1/finish`;
   icmsBESyncUrlValidateToken = `https://${params.get('callbackSync')}/authoring-admin/public/session/v1/validate`;
-  logging.info('initImportantData run');
+  // logging.info('initImportantData run');
 }
 
 
@@ -171,7 +171,7 @@ class XAPI extends Backbone.Model {
               finishScore.mode = data.data.params.mode;
               finishScore.resourceId = data.data.params.resourceId;
 
-              logging.info("---------------authoring test mode---------------");
+              // logging.info("---------------authoring test mode---------------");
               // set validateToken to true to send score to backend
               validateToken = true;
             } else {
@@ -372,7 +372,7 @@ class XAPI extends Backbone.Model {
     // if (event.origin !== this.linkICMS) return;
     if(event.data.type === 'score') {
 
-      logging.info('event get finish score:', JSON.stringify(finishScore, null, 2));
+      // logging.info('event get finish score:', JSON.stringify(finishScore, null, 2));
 
       const message = { type: 'responseScore', data: finishScore};
       window.parent.postMessage(message, '*');
@@ -384,7 +384,7 @@ class XAPI extends Backbone.Model {
     // if (event.origin !== this.linkICMS) return;
     if (event.data.type === 'submitGrade') {
 
-      logging.info('event submit finish score:', JSON.stringify(finishScore, null, 2));
+      // logging.info('event submit finish score:', JSON.stringify(finishScore, null, 2));
 
       // submit event post data to be
       await this.postFinishScore();
@@ -508,7 +508,7 @@ class XAPI extends Backbone.Model {
   getBaseUrl() {
     const url = window.location.origin + window.location.pathname;
 
-    logging.info(`adapt-contrib-xapi: Using detected URL (${url}) as ActivityID`);
+    // logging.info(`adapt-contrib-xapi: Using detected URL (${url}) as ActivityID`);
 
     return url;
   }
