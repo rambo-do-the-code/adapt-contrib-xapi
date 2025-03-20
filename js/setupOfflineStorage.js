@@ -69,7 +69,7 @@ export default function setupOfflineStorage(XAPI) {
         lastname = matches[2];
         firstname = matches[1];
       } else {
-        console.log('xAPI: actor name not in "firstname lastname" format');
+        // console.log('xAPI: actor name not in "firstname lastname" format');
       }
 
       return {
@@ -100,7 +100,7 @@ export default function setupOfflineStorage(XAPI) {
         return actor.mbox.replace('mailto:', '');
       }
 
-      console.log('xAPI: could not determine the learner\'s ID');
+      // console.log('xAPI: could not determine the learner\'s ID');
 
       return null;
     }
