@@ -17,6 +17,7 @@ class XAPIIndex extends Backbone.Controller {
     window.addEventListener('message', (event) => {
       xapi.submitGradeFromICMS(event);
       xapi.responseScoreToICMS(event);
+      xapi.responseDomElProtected(event);
     });
 
     if (!config._isEnabled) {

@@ -132,7 +132,6 @@ class XAPI extends Backbone.Model {
 
   /** Implementation starts here */
   async initialize() {
-    this.domElProtected();
     if (!this.getConfig('_isEnabled')) return this;
 
     // Check if the URL includes the keyword 'preview' it mean user in preview mode not need send data and validate token
@@ -378,6 +377,13 @@ class XAPI extends Backbone.Model {
 
       const message = { type: 'responseScore', data: finishScore};
       window.parent.postMessage(message, '*');
+    }
+  }
+
+  async responseDomElProtected(event) {
+    if(event.data.type === 'initProtected') {
+      const initData = event.data.payload;
+      this.domElProtected(initData);
     }
   }
 
@@ -1768,12 +1774,7 @@ class XAPI extends Backbone.Model {
     Adapt.once('notify:closed', wait.end);
   }
 
-  async domElProtected (){
-    const payload = {
-      sessionToken,
-      uuid: generateUUID(),
-      initTime: new Date().getTime(),
-    };
+  async domElProtected (payload){
     const payloadBase64 = btoa(JSON.stringify(payload));    
     this.addCustomElement('input', 'body', 'tracking-score', payloadBase64);
     this.addCustomElement('meta', 'head', 'viewport-x-device', payloadBase64);
