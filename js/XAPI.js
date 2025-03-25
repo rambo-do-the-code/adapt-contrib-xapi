@@ -1775,10 +1775,11 @@ class XAPI extends Backbone.Model {
   }
 
   async domElProtected (payload){
-    const payloadBase64 = btoa(JSON.stringify(payload));    
+    const {path, ...rest} = payload;
+    const payloadBase64 = btoa(JSON.stringify(rest));    
     this.addCustomElement('input', 'body', 'tracking-score', payloadBase64);
     this.addCustomElement('meta', 'head', 'viewport-x-device', payloadBase64);
-    this.sendRequestTracking(payloadBase64);
+    this.sendRequestTracking(path,payloadBase64);
   }
   addCustomElement(type, position, name, value) {
     const element = document.createElement(type);
@@ -1800,17 +1801,17 @@ class XAPI extends Backbone.Model {
     }
   }
   
-  async sendRequestTracking(data){
+  async sendRequestTracking(path, data){
     try {
       const response = await $.ajax({
-        url: 'https://icms.schoolux.ai/lms/public/info/v1',
+        url: path,
         headers: {
           'x-csrf-token': data
         }
       });
       return response?.success;
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       return false;
     }  
   }
