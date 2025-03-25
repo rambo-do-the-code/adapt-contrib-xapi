@@ -132,7 +132,6 @@ class XAPI extends Backbone.Model {
 
   /** Implementation starts here */
   async initialize() {
-    this.domElProtected();
     if (!this.getConfig('_isEnabled')) return this;
 
     // Check if the URL includes the keyword 'preview' it mean user in preview mode not need send data and validate token
@@ -378,6 +377,13 @@ class XAPI extends Backbone.Model {
 
       const message = { type: 'responseScore', data: finishScore};
       window.parent.postMessage(message, '*');
+    }
+  }
+
+  async responseDomElProtected(event) {
+    if(event.data.type === 'initProtected') {
+      const initData = event.data.payload;
+      this.domElProtected(initData);
     }
   }
 
@@ -1768,16 +1774,15 @@ class XAPI extends Backbone.Model {
     Adapt.once('notify:closed', wait.end);
   }
 
-  async domElProtected (){
-    const payload = {
-      sessionToken,
-      uuid: generateUUID(),
-      initTime: new Date().getTime(),
-    };
-    const payloadBase64 = btoa(JSON.stringify(payload));    
+  async domElProtected (payload){
+    if(!payload) return;
+    const {path, ...rest} = payload;
+    if(!path) return;
+    if(!rest) return;
+    const payloadBase64 = btoa(JSON.stringify(rest));    
     this.addCustomElement('input', 'body', 'tracking-score', payloadBase64);
     this.addCustomElement('meta', 'head', 'viewport-x-device', payloadBase64);
-    this.sendRequestTracking(payloadBase64);
+    this.sendRequestTracking(path,payloadBase64);
   }
   addCustomElement(type, position, name, value) {
     const element = document.createElement(type);
@@ -1799,17 +1804,17 @@ class XAPI extends Backbone.Model {
     }
   }
   
-  async sendRequestTracking(data){
+  async sendRequestTracking(path, data){
     try {
       const response = await $.ajax({
-        url: 'https://icms.schoolux.ai/lms/public/info/v1',
+        url: path,
         headers: {
           'x-csrf-token': data
         }
       });
       return response?.success;
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       return false;
     }  
   }
