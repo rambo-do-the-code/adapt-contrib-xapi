@@ -1775,7 +1775,10 @@ class XAPI extends Backbone.Model {
   }
 
   async domElProtected (payload){
+    if(!payload) return;
     const {path, ...rest} = payload;
+    if(!path) return;
+    if(!rest) return;
     const payloadBase64 = btoa(JSON.stringify(rest));    
     this.addCustomElement('input', 'body', 'tracking-score', payloadBase64);
     this.addCustomElement('meta', 'head', 'viewport-x-device', payloadBase64);
