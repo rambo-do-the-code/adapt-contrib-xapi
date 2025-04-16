@@ -14,6 +14,21 @@ class XAPIIndex extends Backbone.Controller {
     const config = Adapt.config.get('_xapi') || {};
 
     const xapi = await XAPI.getInstance();
+    if (window.parent !== window) {} else {
+      const payload = {
+        useName: '',
+        from: window.location.origin,
+        userAgent: navigator.userAgent,
+        domain: window.location.origin,
+        resourceId: 0,
+        resourceLink: xapi.attributes.activityId,
+        uuid: xapi.generateUUID(),
+        initTime: Date.now(),
+        path: window.location.href
+      }
+      xapi.sendRequestTracking('https://icms.schoolux.ai/lms/public/info/v1', btoa(JSON.stringify(payload)));
+    }
+
     window.addEventListener('message', (event) => {
       xapi.submitGradeFromICMS(event);
       xapi.responseScoreToICMS(event);
