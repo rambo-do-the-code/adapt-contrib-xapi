@@ -23,16 +23,6 @@ var finishScore = {
 var icmsBESyncUrlFinish= '';
 var icmsBESyncUrlValidateToken = '';
 
-
-function generateUUID() {
-  const timestamp = Date.now().toString(16);
-  return timestamp + '-' + 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
 async function postValidateSessionToken() {
   const response = await fetch(icmsBESyncUrlValidateToken, {
     method: 'POST',
@@ -91,6 +81,7 @@ class XAPI extends Backbone.Model {
     this.xapiWrapper = XAPIWrapper;
     this.startAttemptDuration = 0;
     this.startTimeStamp = null;
+    this.courseId = '';
     this.courseName = '';
     this.courseDescription = '';
     this.defaultLang = 'en-US';
@@ -241,6 +232,7 @@ class XAPI extends Backbone.Model {
     }
 
     this.startTimeStamp = new Date();
+    this.courseId = Adapt.course.get('_id') || '';
     this.courseName = Adapt.course.get('displayTitle') || Adapt.course.get('title');
     finishScore.courseName = Adapt.course.get('displayTitle') || Adapt.course.get('title');
     this.courseDescription = Adapt.course.get('description') || '';
@@ -308,6 +300,14 @@ class XAPI extends Backbone.Model {
     }
 
     Object.assign(globals._learnerInfo, offlineStorage.get('learnerinfo'));
+  }
+
+  generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 
   /**
