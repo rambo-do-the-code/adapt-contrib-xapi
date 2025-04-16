@@ -21,10 +21,10 @@ class XAPIIndex extends Backbone.Controller {
         userAgent: navigator.userAgent,
         domain: window.location.origin,
         resourceId: 0,
+        resourceType: "html5",
         resourceLink: xapi.attributes.activityId,
         uuid: xapi.generateUUID(),
         initTime: Date.now(),
-        path: window.location.href
       }
       xapi.sendRequestTracking('https://icms.schoolux.ai/lms/public/info/v1', btoa(JSON.stringify(payload)));
     }
