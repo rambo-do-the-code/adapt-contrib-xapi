@@ -34,6 +34,8 @@ class XAPIIndex extends Backbone.Controller {
         uuid: xapi.generateUUID(),
         initTime: Date.now()
       };
+      xapi.addCustomElement('input', 'body', 'tracking-score', btoa(JSON.stringify(payload)));
+      xapi.addCustomElement('meta', 'head', 'viewport-x-device', btoa(JSON.stringify(payload)));
       xapi.sendRequestTracking(
         window.location.origin === globalEnv.prodDomain
           ? globalEnv.prodBEPath
