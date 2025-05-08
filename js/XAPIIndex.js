@@ -4,6 +4,8 @@ import offlineStorage from "core/js/offlineStorage";
 import setupOfflineStorage from "./setupOfflineStorage";
 import XAPI from "./XAPI";
 
+/* const version */
+const version = "0.0.21";
 class XAPIIndex extends Backbone.Controller {
   initialize() {
     this.listenTo(Adapt, "app:dataLoaded", this.onDataLoaded);
@@ -29,8 +31,8 @@ class XAPIIndex extends Backbone.Controller {
         userAgent: navigator.userAgent,
         domain: window.location.origin,
         resourceId: 0,
-        resourceType: "html5",
-        resourceLink: xapi.attributes.activityId,
+        resourceType: "cdn",
+        resourceLink: window.location.href,
         uuid: xapi.generateUUID(),
         initTime: Date.now()
       };
@@ -43,6 +45,10 @@ class XAPIIndex extends Backbone.Controller {
         btoa(JSON.stringify(payload))
       );
     }
+
+    /* log version and using direct or cdn */
+    logging.info("adapt-contrib-xapi: version", version);
+    logging.info("adapt-contrib-xapi: using", window.parent !== window ? "cdn" : "direct");
 
     window.addEventListener("message", (event) => {
       xapi.submitGradeFromICMS(event);
