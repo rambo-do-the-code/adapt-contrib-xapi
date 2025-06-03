@@ -15,6 +15,10 @@ class XAPIIndex extends Backbone.Controller {
     const config = Adapt.config.get("_xapi") || {};
 
     const xapi = await XAPI.getInstance();
+    const {base} = xapi?.xapiWrapper || {};
+    if(base) {
+      localStorage.setItem("baseUrlBE", base);
+    }
 
     if (window.parent !== window) {
     } else {
