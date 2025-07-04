@@ -22,6 +22,7 @@ var finishScore = {
 };
 var icmsBESyncUrlFinish= '';
 var icmsBESyncUrlValidateToken = '';
+var urlFetchCurrentPage = "";
 
 async function postValidateSessionToken() {
   const response = await fetch(icmsBESyncUrlValidateToken, {
@@ -36,10 +37,28 @@ async function postValidateSessionToken() {
   return response.json();
 }
 
+async function getCurrentPageId() {
+  const response = await fetch(urlFetchCurrentPage, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      "Authorization": `Bearer ${sessionToken}`
+    },
+  });
+  return response.json();
+}
+
 function extractPageIdFromCurrentUrl() {
   const url = window.location.href;
   const match = url.match(/\/id\/([a-zA-Z0-9]+)/);
   return match ? match[1] : null;
+}
+
+function redirectPageIdFromId(newCourseId) {
+  
+ const currentUrl = window.location.href;
+  const newUrl = currentUrl + "#id/" + newCourseId;
+  window.location.href = newUrl;
 }
 
 function getCourseUUID(url) {
@@ -53,6 +72,7 @@ function initImportantData() {
   finishScore.courseId = getCourseUUID(window.location.href);
   icmsBESyncUrlFinish = `https://${params.get('callbackSync')}/authoring-admin/external/sync/v1/finish`;
   icmsBESyncUrlValidateToken = `https://${params.get('callbackSync')}/authoring-admin/public/session/v1/validate`;
+  urlFetchCurrentPage = `https://${params.get('callbackSync')}/authoring-admin/external/activity/v1/current-page`;
   // logging.info('initImportantData run');
 }
 
@@ -123,14 +143,20 @@ class XAPI extends Backbone.Model {
 
   /** Implementation starts here */
   async initialize() {
+        console.log(data, 'datadatadata111');
     if (!this.getConfig('_isEnabled')) return this;
 
     // Check if the URL includes the keyword 'preview' it mean user in preview mode not need send data and validate token
     const currentUrl = window.location.href;
     const url = new URL(currentUrl);
     const hasSessionToken = url.searchParams.has('sessionToken');
+        console.log(data, 'datadatadata');
     
     if (hasSessionToken) {
+      console.log(
+        "Session token found in URL. Proceeding with session validation and score submission."
+      );  
+      
       // Custom logic to validate the session token
       postValidateSessionToken()
           .then((data) => {
@@ -189,6 +215,24 @@ class XAPI extends Backbone.Model {
             logging.warn("--------------authoring Unsaved mode----------------");
             return this;
           });
+
+       getCurrentPageId().then((data) => {
+        
+        if (data.success) {
+          const currentPageId = data.data;
+          if (currentPageId) {
+            // redirect to the current page
+            const extractedPageId = extractPageIdFromCurrentUrl();
+            if (extractedPageId !== currentPageId) {
+              redirectPageIdFromId(currentPageId);
+            }
+          } else {
+            logging.warn("No current page ID found in the response.");
+          }
+        } else {
+          logging.error("Failed to fetch current page ID:", data.message);
+        }
+       })    
     }
 
     
