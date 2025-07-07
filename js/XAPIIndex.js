@@ -15,7 +15,6 @@
       const config = Adapt.config.get("_xapi") || {};
 
       const xapi = await XAPI.getInstance();
-      await   xapi.getCurrentPageId();
       const {base} = xapi?.xapiWrapper || {};
       if(base) {
         localStorage.setItem("baseUrlBE", base);
