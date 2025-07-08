@@ -50,7 +50,10 @@ async function getCurrentPageId() {
 
 function extractPageIdFromCurrentUrl() {
   const url = window.location.href;
-  const match = url.match(/\/id\/([a-zA-Z0-9]+)/);
+  let match = url.match(/\/id\/([a-zA-Z0-9]+)/);
+  if (match === null) {
+    match = url.match(/[#\/]id\/([a-zA-Z0-9]+)/);
+  }
   return match ? match[1] : null;
 }
 
@@ -216,23 +219,23 @@ class XAPI extends Backbone.Model {
             return this;
           });
 
-       getCurrentPageId().then((data) => {
-        
-        if (data.success) {
-          const currentPageId = data.data;
-          if (currentPageId) {
-            // redirect to the current page
-            const extractedPageId = extractPageIdFromCurrentUrl();
-            if (extractedPageId !== currentPageId) {
-              redirectPageIdFromId(currentPageId);
-            }
-          } else {
-            logging.warn("No current page ID found in the response.");
-          }
-        } else {
-          logging.error("Failed to fetch current page ID:", data.message);
-        }
-       })    
+       // getCurrentPageId().then((data) => {
+       //
+       //  if (data.success) {
+       //    const currentPageId = data.data;
+       //    if (currentPageId) {
+       //      // redirect to the current page
+       //      const extractedPageId = extractPageIdFromCurrentUrl();
+       //      if (extractedPageId !== currentPageId) {
+       //        redirectPageIdFromId(currentPageId);
+       //      }
+       //    } else {
+       //      logging.warn("No current page ID found in the response.");
+       //    }
+       //  } else {
+       //    logging.error("Failed to fetch current page ID:", data.message);
+       //  }
+       // })
     }
 
     
