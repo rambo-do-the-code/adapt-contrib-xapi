@@ -835,6 +835,54 @@ class XAPI extends Backbone.Model {
 
     this.addGroupingActivity(view.model, statement);
     await this.sendStatement(statement);
+    
+
+    // Check answer correctness
+  if (result.success === true) {
+    this.correctStreak += 1;
+    this.incorrectStreak = 0;
+  } else if (result.success === false) {
+    this.incorrectStreak += 1;
+    this.correctStreak = 0;
+  }
+
+// Show toast if 3 in a row
+  if (this.correctStreak === 3) {
+    this.correctStreak = 0;
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 5000,
+      html: `
+      <div class="toast-inner success">
+        <div class="toast-text">
+          <div class="toast-title">YEAHHHH!</div>
+          <div class="toast-message">100%! You are a star!</div>
+        </div>
+      </div>
+    `,
+    });
+  }
+
+  if (this.incorrectStreak === 3) {
+    this.incorrectStreak = 0;
+      Swal.fire({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 5000,
+      html: `
+      <div class="toast-inner error">
+        <div class="toast-text">
+          <div class="toast-title">Oooops...!</div>
+          <div class="toast-message">Don't give up!<br/>You can do this!</div>
+        </div>
+      </div>
+    `,
+    });
+  }
+
   }
 
   /**
