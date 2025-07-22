@@ -847,7 +847,7 @@ class XAPI extends Backbone.Model {
   }
 
 // Show toast if 3 in a row
-  if (this.correctStreak === 3) {
+  if (this.correctStreak === 5) {
     this.correctStreak = 0;
     Swal.fire({
       toast: true,
