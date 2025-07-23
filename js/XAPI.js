@@ -100,7 +100,8 @@ class XAPI extends Backbone.Model {
       isInitialised: false,
       state: {}
     };
-
+    this.correctStreak = 0;
+    this.incorrectStreak = 0;
     this.xapiWrapper = XAPIWrapper;
     this.startAttemptDuration = 0;
     this.startTimeStamp = null;
