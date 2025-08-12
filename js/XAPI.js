@@ -23,6 +23,7 @@ var finishScore = {
 var icmsBESyncUrlFinish= '';
 var icmsBESyncUrlValidateToken = '';
 var urlFetchCurrentPage = "";
+var urlFetchMessageToast = '';
 
 async function postValidateSessionToken() {
   const response = await fetch(icmsBESyncUrlValidateToken, {
@@ -45,6 +46,18 @@ async function getCurrentPageId() {
       "Authorization": `Bearer ${sessionToken}`
     },
   });
+  return response.json();
+}
+
+async function fetchMessageToast(triggerKey) {
+  const response = await fetch(urlFetchMessageToast + `?triggerKey=${triggerKey}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      "Authorization": `Bearer ${sessionToken}`
+    },
+    }
+  );
   return response.json();
 }
 
@@ -76,6 +89,7 @@ function initImportantData() {
   icmsBESyncUrlFinish = `https://${params.get('callbackSync')}/authoring-admin/external/sync/v1/finish`;
   icmsBESyncUrlValidateToken = `https://${params.get('callbackSync')}/authoring-admin/public/session/v1/validate`;
   urlFetchCurrentPage = `https://${params.get('callbackSync')}/authoring-admin/external/activity/v1/current-page`;
+  urlFetchMessageToast = `https://${params.get('callbackSync')}/authoring-admin/external/activity/v1/shoutout-message`;
   // logging.info('initImportantData run');
 }
 
@@ -835,7 +849,11 @@ class XAPI extends Backbone.Model {
     const statement = this.getStatement(this.getVerb(window.ADL.verbs.answered), object, result);
 
     this.addGroupingActivity(view.model, statement);
-    await this.sendStatement(statement);
+    const response = await this.sendStatement(statement);
+    
+    const triggerKey = response?.data?.triggerKey || "";
+    const randomNumber = Math.floor(Math.random() * (8 - 3 + 1)) + 3;
+    triggerKey  ? this.showToastMessage(triggerKey, randomNumber) : null;
     
 
     // Check answer correctness
@@ -850,40 +868,38 @@ class XAPI extends Backbone.Model {
 // Show toast if 3 in a row
   if (this.correctStreak === 5) {
     this.correctStreak = 0;
-    Swal.fire({
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 5000,
-      html: `
-      <div class="toast-inner success">
-        <div class="toast-text">
-          <div class="toast-title">YEAHHHH!</div>
-          <div class="toast-message">100%! You are a star!</div>
-        </div>
-      </div>
-    `,
-    });
+    this.showToastMessage('PERFECT_STREAK', 9);
   }
 
   if (this.incorrectStreak === 3) {
     this.incorrectStreak = 0;
-      Swal.fire({
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 5000,
-      html: `
-      <div class="toast-inner error">
-        <div class="toast-text">
-          <div class="toast-title">Oooops...!</div>
-          <div class="toast-message">Don't give up!<br/>You can do this!</div>
-        </div>
-      </div>
-    `,
-    });
+    this.showToastMessage('INCORRECT_ANSWERS', 10);
   }
 
+  }
+
+
+  showToastMessage(message, type = 3 ) {
+    fetchMessageToast(message)
+      .then((data) => {
+        if (data.success) {
+          const messageToast = data.data.messageEn;
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 5000,
+            html: `
+             <div class="toast-inner type-${type}">
+                    <div class="toast-text">
+                      <div class="toast-title">Let’s go!</div>
+                      <div class="toast-message">${messageToast}</div>
+                  </div>
+              </div>
+            `,
+          });
+        }
+      })
   }
 
   /**
@@ -1585,7 +1601,7 @@ class XAPI extends Backbone.Model {
     // add custom logic finish score
     this.addResultToFinishScore(statement);
 
-    await this.onStatementReady(statement, attachments);
+    return  this.onStatementReady(statement, attachments);
   }
 
   postFinishScore() {
@@ -1752,20 +1768,26 @@ class XAPI extends Backbone.Model {
    * @param {array} [attachments] - An array of attachments to pass to the LRS.
    */
   async onStatementReady(statement, attachments) {
+    this.xapiWrapper.lrs.auth = `Bearer ${sessionToken}`;
 
-    this.xapiWrapper.lrs.auth =  `Bearer ${sessionToken}`;
+    return new Promise((resolve, reject) => {
+      this.xapiWrapper.sendStatement(
+      statement,
+      (error, xhr /*, body?*/) => {
+        if (error) {
+          Adapt.trigger('xapi:lrs:sendStatement:error', error);
+          return reject(error);
+        }
+        Adapt.trigger('xapi:lrs:sendStatement:success', xhr);
+        // ADL trả về XHR; bạn có thể parse:
+        const body = (() => { try { return JSON.parse(xhr.response); } catch { return xhr.response; }})();
+        resolve(body)
+      },
+      attachments
+    );
+  });
+}
 
-    const sendStatementCallback = (error, res, body) => {
-      if (error) {
-        Adapt.trigger('xapi:lrs:sendStatement:error', error);
-        throw error;
-      }
-
-      Adapt.trigger('xapi:lrs:sendStatement:success', body);
-    }
-
-    this.xapiWrapper.sendStatement(statement, sendStatementCallback, attachments);
-  }
 
   /**
    * Process any attachments that have been added to the statement object by
