@@ -849,11 +849,7 @@ class XAPI extends Backbone.Model {
     const statement = this.getStatement(this.getVerb(window.ADL.verbs.answered), object, result);
 
     this.addGroupingActivity(view.model, statement);
-    const response = await this.sendStatement(statement);
-    
-    const triggerKey = response?.data?.triggerKey || "";
-    const randomNumber = Math.floor(Math.random() * (8 - 3 + 1)) + 3;
-    triggerKey  ? this.showToastMessage(triggerKey, randomNumber) : null;
+    await this.handleStatement(statement)
     
 
     // Check answer correctness
@@ -877,6 +873,23 @@ class XAPI extends Backbone.Model {
   }
 
   }
+
+  async handleStatement(statement) {
+    try {
+      const response = await this.sendStatement(statement);
+      console.log(response);
+      
+      const triggerKey = response?.data?.triggerKey || "";
+      const randomNumber = Math.floor(Math.random() * (8 - 3 + 1)) + 3;
+
+      if (triggerKey) {
+        this.showToastMessage(triggerKey, randomNumber);
+      }
+    } catch (error) {
+      console.error("Error handling statement:", error);
+    }
+  }
+
 
 
   showToastMessage(message, type = 9 ) {
@@ -968,7 +981,7 @@ class XAPI extends Backbone.Model {
     const statement = this.getStatement(this.getVerb(window.ADL.verbs.experienced), object);
 
     this.addGroupingActivity(model, statement);
-    await this.sendStatement(statement);
+    await this.handleStatement(statement);
   }
 
   /**
@@ -1010,7 +1023,7 @@ class XAPI extends Backbone.Model {
     const statement = this.getStatement(this.getVerb(window.ADL.verbs.completed), object, result);
 
     this.addGroupingActivity(model, statement);
-    await this.sendStatement(statement);
+    await this.handleStatement(statement);
   }
 
   /**
@@ -1139,7 +1152,7 @@ class XAPI extends Backbone.Model {
 
     // Delay so that component completion can be recorded before assessment completion.
     _.delay(async () => {
-      await this.sendStatement(statement);
+      await this.handleStatement(statement);
     }, 500);
   }
 
@@ -1854,7 +1867,7 @@ class XAPI extends Backbone.Model {
     // over each statement and call sendStatement().
     try {
       for (let statement of statements) {
-        await this.sendStatement(statement);
+        await this.handleStatement(statement);
       }
     } catch (error) {
       logging.error('adapt-contrib-xapi:', error);
