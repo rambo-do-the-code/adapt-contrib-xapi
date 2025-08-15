@@ -89,7 +89,7 @@ function initImportantData() {
   icmsBESyncUrlFinish = `https://${params.get('callbackSync')}/authoring-admin/external/sync/v1/finish`;
   icmsBESyncUrlValidateToken = `https://${params.get('callbackSync')}/authoring-admin/public/session/v1/validate`;
   urlFetchCurrentPage = `https://${params.get('callbackSync')}/authoring-admin/external/activity/v1/current-page`;
-  urlFetchMessageToast = `https://${params.get('callbackSync')}/authoring-admin/external/activity/v1/shoutout-message`;
+  urlFetchMessageToast = `https://${params.get('callbackSync')}/authoring-admin/external/sync/v1/shoutout-message`;
   // logging.info('initImportantData run');
 }
 
@@ -879,7 +879,7 @@ class XAPI extends Backbone.Model {
   }
 
 
-  showToastMessage(message, type = 3 ) {
+  showToastMessage(message, type = 9 ) {
     fetchMessageToast(message)
       .then((data) => {
         if (data.success) {
@@ -888,11 +888,11 @@ class XAPI extends Backbone.Model {
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 5000,
+            timer: 25000,
             html: `
              <div class="toast-inner type-${type}">
                     <div class="toast-text">
-                      <div class="toast-title">Let’s go!</div>
+                      <div class="toast-title">${type === 9 ? "YEAHHHH !" : "OOPS !"}</div>
                       <div class="toast-message">${messageToast}</div>
                   </div>
               </div>
