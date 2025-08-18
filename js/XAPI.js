@@ -49,17 +49,36 @@ async function getCurrentPageId() {
   return response.json();
 }
 
-async function fetchMessageToast(triggerKey) {
-  const response = await fetch(urlFetchMessageToast + `?triggerKey=${triggerKey}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      "Authorization": `Bearer ${sessionToken}`
-    },
-    }
-  );
-  return response.json();
+function isKindyTheme() {
+  // Ưu tiên class trên body/html; có thể mở rộng nếu bạn có flag khác.
+  return document.querySelector('.kindy-theme')
+      || document.documentElement.classList.contains('kindy-theme');
 }
+
+async function fetchMessageToast(triggerKey) {
+  if (isKindyTheme()) {
+    return Promise.resolve({ success: false, skipped: true });
+  }
+  try {
+    const url = `${urlFetchMessageToast}?triggerKey=${encodeURIComponent(triggerKey)}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionToken}`
+      }
+    });
+
+    return await response.json();
+  } catch (err) {
+    // Không throw để tránh vỡ luồng UI; log và trả về object an toàn
+    logging?.warn?.(`fetchMessageToast error: ${err?.message || err}`);
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
+
+
 
 function extractPageIdFromCurrentUrl() {
   const url = window.location.href;
@@ -91,6 +110,8 @@ function initImportantData() {
   urlFetchCurrentPage = `https://${params.get('callbackSync')}/authoring-admin/external/activity/v1/current-page`;
   urlFetchMessageToast = `https://${params.get('callbackSync')}/authoring-admin/external/sync/v1/shoutout-message`;
   // logging.info('initImportantData run');
+
+ 
 }
 
 
@@ -877,8 +898,6 @@ class XAPI extends Backbone.Model {
   async handleStatement(statement) {
     try {
       const response = await this.sendStatement(statement);
-      console.log(response);
-      
       const triggerKey = response?.data?.triggerKey || "";
       const randomNumber = Math.floor(Math.random() * (8 - 3 + 1)) + 3;
 
@@ -890,30 +909,39 @@ class XAPI extends Backbone.Model {
     }
   }
 
-
-
-  showToastMessage(message, type = 9 ) {
-    fetchMessageToast(message)
-      .then((data) => {
-        if (data.success) {
-          const messageToast = data.data.messageEn;
-          Swal.fire({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timer: 25000,
-            html: `
-             <div class="toast-inner type-${type}">
-                    <div class="toast-text">
-                      <div class="toast-title">${type === 9 ? "YEAHHHH !" : "OOPS !"}</div>
-                      <div class="toast-message">${messageToast}</div>
-                  </div>
-              </div>
-            `,
-          });
-        }
-      })
+  isKindyTheme() {
+  // Ưu tiên class trên body/html; có thể mở rộng nếu bạn có flag khác.
+  return document.body.classList.contains('kindy-theme')
+      || document.documentElement.classList.contains('kindy-theme');
   }
+
+
+
+  async  showToastMessage(message, type = 9) {
+  const data = await fetchMessageToast(message);
+
+  // Guard: nếu skip vì theme, hoặc call fail, thì thôi
+  if (!data || !data.success || !data?.data?.messageEn) return;
+
+  const messageToast = data.data.messageEn;
+
+  Swal.fire({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 5000,
+    html: `
+      <div class="toast-inner type-${type}">
+        <div class="toast-text">
+          <div class="toast-title">${
+            type === 9 ? "YEAHHHH !" : type <= 8 ? "LET'S GO !" : "OOPS !"
+          }</div>
+          <div class="toast-message">${messageToast}</div>
+        </div>
+      </div>
+    `,
+  });
+}
 
   /**
    * Removes the HTML tags/attributes and returns a string.
