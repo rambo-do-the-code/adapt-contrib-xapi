@@ -948,6 +948,7 @@ class XAPI extends Backbone.Model {
     if (result.success === true) {
       this.correctStreak += 1;
       this.incorrectStreak = 0;
+      correctSound.play();
     } else if (result.success === false) {
       this.incorrectStreak += 1;
       this.correctStreak = 0;
@@ -962,7 +963,6 @@ class XAPI extends Backbone.Model {
     if (this.correctStreak === 5) {
       this.correctStreak = 0;
       this.showToastMessage("PERFECT_STREAK", 9);
-      correctSound.play();
     }
 
     // Show toast nếu sai liên tục 3 câu
