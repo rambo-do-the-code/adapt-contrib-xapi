@@ -24,7 +24,12 @@ var icmsBESyncUrlFinish = "";
 var icmsBESyncUrlValidateToken = "";
 var urlFetchCurrentPage = "";
 var urlFetchMessageToast = "";
-
+var correctSound = new Audio(
+  "https://icms-public.s3.ap-southeast-1.amazonaws.com/public/static/correct_answer.mp3"
+);
+var wrongSound = new Audio(
+  "https://icms-public.s3.ap-southeast-1.amazonaws.com/public/static/wrong_answer.mp3"
+);
 async function postValidateSessionToken() {
   const response = await fetch(icmsBESyncUrlValidateToken, {
     method: "POST",
@@ -946,14 +951,21 @@ class XAPI extends Backbone.Model {
     } else if (result.success === false) {
       this.incorrectStreak += 1;
       this.correctStreak = 0;
+
+      // Chỉ play wrongSound nếu chưa đủ 3 lần sai
+      if (this.incorrectStreak < 3) {
+        wrongSound.play();
+      }
     }
 
-    // Show toast if 3 in a row
+    // Show toast nếu đúng liên tục 5 câu
     if (this.correctStreak === 5) {
       this.correctStreak = 0;
       this.showToastMessage("PERFECT_STREAK", 9);
+      correctSound.play();
     }
 
+    // Show toast nếu sai liên tục 3 câu
     if (this.incorrectStreak === 3) {
       this.incorrectStreak = 0;
       this.showToastMessage("INCORRECT_ANSWERS", 10);
