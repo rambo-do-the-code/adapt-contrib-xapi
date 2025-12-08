@@ -24,6 +24,11 @@ var icmsBESyncUrlFinish = "";
 var icmsBESyncUrlValidateToken = "";
 var urlFetchCurrentPage = "";
 var urlFetchMessageToast = "";
+
+const toastByStep = {
+ "TOAST_CORRECT": 9,
+   "TOAST_INCORRECT": 10,
+};
 var correctSound = new Audio(
   "https://icms-public.s3.ap-southeast-1.amazonaws.com/public/static/correct_answer.mp3"
 );
@@ -85,6 +90,14 @@ async function fetchMessageToast(triggerKey) {
     return { success: false, error: err?.message || String(err) };
   }
 }
+
+function getToastType(step) {
+  if (step === "TOAST_NORMAL") return  Math.floor(Math.random() * (8 - 3 + 1)) + 3;
+  if (step === "TOAST_CORRECT") return 9;
+  if (step === "TOAST_INCORRECT") return 10;
+}
+
+
 
 function extractPageIdFromCurrentUrl() {
   const url = window.location.href;
@@ -959,7 +972,6 @@ class XAPI extends Backbone.Model {
       }
     }
 
-    // Show toast nếu đúng liên tục 5 câu
     if (this.correctStreak === 5) {
       this.correctStreak = 0;
       this.showToastMessage("PERFECT_STREAK", 9);
@@ -997,13 +1009,13 @@ class XAPI extends Backbone.Model {
     );
   }
 
-  async showToastMessage(message, type = 9) {
+  async showToastMessage(message) {
     const data = await fetchMessageToast(message);
-
     // Guard: nếu skip vì theme, hoặc call fail, thì thôi
     if (!data || !data.success || !data?.data?.messageEn) return;
-
     const messageToast = data.data.messageEn;
+    const title = data?.data?.title || '';
+    const type = getToastType(data?.data?.type)
 
     Swal.fire({
       toast: true,
@@ -1011,10 +1023,10 @@ class XAPI extends Backbone.Model {
       showConfirmButton: false,
       timer: 5000,
       html: `
-      <div class="toast-inner type-${type}">
+      <div class="toast-inner type-${type}">s
         <div class="toast-text">
           <div class="toast-title">${
-            type === 9 ? "YEAHHHH !" : type <= 8 ? "LET'S GO !" : "OOPS !"
+           title
           }</div>
           <div class="toast-message">${messageToast}</div>
         </div>
