@@ -97,6 +97,12 @@ function getToastType(step) {
   if (step === "TOAST_INCORRECT") return 10;
 }
 
+function getToastTitle(step) {
+   if (step === "TOAST_NORMAL") return  "LET'S GO !";
+  if (step === "TOAST_CORRECT") return "YEAHHHH !";
+  if (step === "TOAST_INCORRECT") return "OOPS !";
+}
+
 
 
 function extractPageIdFromCurrentUrl() {
@@ -1014,8 +1020,8 @@ class XAPI extends Backbone.Model {
     // Guard: nếu skip vì theme, hoặc call fail, thì thôi
     if (!data || !data.success || !data?.data?.messageEn) return;
     const messageToast = data.data.messageEn;
-    const title = data?.data?.title || '';
     const type = getToastType(data?.data?.type)
+    const title = getToastTitle(data?.data?.type)
 
     Swal.fire({
       toast: true,
