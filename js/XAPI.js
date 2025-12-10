@@ -98,7 +98,7 @@ function getToastType(step) {
 }
 
 function getToastTitle(step) {
-   if (step === "TOAST_NORMAL") return  "LET'S GO !";
+   if (step === "TOAST_NORMAL") return  "DOING GREAT!";
   if (step === "TOAST_CORRECT") return "YEAHHHH !";
   if (step === "TOAST_INCORRECT") return "OOPS !";
 }
