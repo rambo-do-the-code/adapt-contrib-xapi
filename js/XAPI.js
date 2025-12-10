@@ -1023,6 +1023,10 @@ class XAPI extends Backbone.Model {
     const type = getToastType(data?.data?.type)
     const title = getToastTitle(data?.data?.type)
 
+
+
+    
+
     Swal.fire({
       toast: true,
       position: "top-end",
