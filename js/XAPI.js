@@ -1021,11 +1021,7 @@ class XAPI extends Backbone.Model {
     if (!data || !data.success || !data?.data?.messageEn) return;
     const messageToast = data.data.messageEn;
     const type = getToastType(data?.data?.type)
-    const title = getToastTitle(data?.data?.type)
-
-
-
-    
+    const title = data?.data?.title || getToastTitle(data?.data?.type)
 
     Swal.fire({
       toast: true,
