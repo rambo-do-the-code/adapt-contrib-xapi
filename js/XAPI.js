@@ -215,12 +215,9 @@ class XAPI extends Backbone.Model {
     const currentUrl = window.location.href;
     const url = new URL(currentUrl);
     const hasSessionToken = url.searchParams.has("sessionToken");
-    console.log(data, "datadatadata");
-
+    
     if (hasSessionToken) {
-      console.log(
-        "Session token found in URL. Proceeding with session validation and score submission."
-      );
+     
 
       // Custom logic to validate the session token
       postValidateSessionToken()
@@ -320,6 +317,9 @@ class XAPI extends Backbone.Model {
       return this;
     }
 
+    console.log(Adapt);
+    
+
     this.set({
       activityId:
         this.getLRSAttribute("activity_id") ||
@@ -356,6 +356,8 @@ class XAPI extends Backbone.Model {
 
     this.startTimeStamp = new Date();
     this.courseId = Adapt.course.get("_id") || "";
+    console.log(Adapt.config.get("_theme"));
+
     this.courseName =
       Adapt.course.get("displayTitle") || Adapt.course.get("title");
     finishScore.courseName =
@@ -967,14 +969,18 @@ class XAPI extends Backbone.Model {
     if (result.success === true) {
       this.correctStreak += 1;
       this.incorrectStreak = 0;
-      correctSound.play();
+      if(!this.isPtPlus()){
+        correctSound.play();
+      }
     } else if (result.success === false) {
       this.incorrectStreak += 1;
       this.correctStreak = 0;
 
       // Chỉ play wrongSound nếu chưa đủ 3 lần sai
       if (this.incorrectStreak < 3) {
+       if(!this.isPtPlus()){
         wrongSound.play();
+      }
       }
     }
 
@@ -1172,6 +1178,15 @@ class XAPI extends Backbone.Model {
    * @param {string|Adapt.Model} page - Either an Adapt contentObject model of type 'page', or the _id of one.
    * @returns {XAPIStatement.Activity} Activity corresponding to the lesson.
    */
+
+  isPtPlus(){
+  // Ưu tiên class trên body/html; có thể mở rộng nếu bạn có flag khác.
+    return (
+      document.querySelector(".isPTPlus") ||
+      document.documentElement.classList.contains("isPTPlus")
+    );
+  }
+
   getLessonActivity(page) {
     const pageModel = typeof page === "string" ? data.findById(page) : page;
     const activity = new window.ADL.XAPIStatement.Activity(
