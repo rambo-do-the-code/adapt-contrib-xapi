@@ -933,9 +933,20 @@ class XAPI extends Backbone.Model {
       })
     }
 
+    const modelScore =
+      typeof view.model.score === "number"
+        ? view.model.score
+        : view.model.get("_score") || 0
+    const modelMaxScore =
+      typeof view.model.maxScore === "number"
+        ? view.model.maxScore
+        : view.model.get("_maxScore") || view.model.get("_questionWeight") || 0
+    const scaledScore =
+      modelMaxScore > 0 ? Math.min(modelScore / modelMaxScore, 1) : 0
+
     const result = {
       score: {
-        raw: view.model.get("_score") || 0,
+        raw: modelScore,
       },
       success: view.model.get("_isCorrect"),
       completion,
