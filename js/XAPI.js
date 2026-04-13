@@ -171,6 +171,7 @@ class XAPI extends Backbone.Model {
     this.courseDescription = ""
     this.defaultLang = "en-US"
     this.isComplete = false
+    this.statementBuffer = []
 
     // Default events to send statements for.
     this.coreEvents = {
@@ -2147,7 +2148,7 @@ class XAPI extends Backbone.Model {
         if (!this.statementBuffer.length || !validateToken) {
           console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken)
           return
-    }
+        }
 
      const passedStatements = this.statementBuffer.filter(
         s => s.verb?.id === "http://adlnet.gov/expapi/verbs/passed"
@@ -2159,24 +2160,33 @@ class XAPI extends Backbone.Model {
       console.log("flushCompleteStatements: no passed statements found")
       return
     }
-    console.log("flushCompleteStatements: sending", passedStatements.length, "passed statements")
+    const pageResults = passedStatements.map(s => ({
+       pageId: s.pageId,
+       rawScore: s.result?.score?.raw ?? 0,
+       maxScore: s.result?.score?.max ?? 0,
+       scaled: s.result?.score?.scaled ?? 0,
+       success: s.result?.success ?? false,
+    }))
 
-    this.xapiWrapper.lrs.auth = `Bearer ${sessionToken}`
+    const lrsEndpoint = this.xapiWrapper.lrs.endpoint // vd: http://localhost:8080/authoring-admin/external/sync/v1/statements/
+    const flushUrl = lrsEndpoint.split("/sync/v1/")[0] + "/sync/v1/flushStatements"
 
-    return new Promise((resolve, reject) => {
-       this.xapiWrapper.sendStatements(
-         passedStatements,
-         (error, xhr) => {
-           if (error) {
-             Adapt.trigger("xapi:lrs:sendStatement:error", error)
-             return reject(error)
-           }
-           Adapt.trigger("xapi:lrs:sendStatement:success", xhr)
-           resolve(xhr)
-         }
-       )
+    try {
+       const response = await fetch(flushUrl, {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+         "Authorization": `Bearer ${sessionToken}`,
+         "X-Experience-API-Version": "1.0.3",
+       },
+       body: JSON.stringify(pageResults),
      })
-   }
+     const data = await response.json()
+     console.log("flushCompleteStatements: response", data)
+    } catch (error) {
+     console.error("flushCompleteStatements: error", error)
+    }
+  }
   getGlobals() {
     return _.defaults(
       Adapt?.course?.get("_globals")?._extensions?._xapi || {},
