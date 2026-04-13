@@ -2176,7 +2176,7 @@ class XAPI extends Backbone.Model {
          }
        )
      })
-
+   }
   getGlobals() {
     return _.defaults(
       Adapt?.course?.get("_globals")?._extensions?._xapi || {},
