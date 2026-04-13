@@ -1318,7 +1318,23 @@ class XAPI extends Backbone.Model {
 
     // Delay so that component completion can be recorded before assessment completion.
     _.delay(async () => {
-      await this.handleStatement(statement)
+      this.statementBuffer.push(statement)
+
+        // Gửi realtime statement assessment
+        await this.sendStatement(statement)
+
+          // Check xem có phải page cuối không
+          const currentPage = data.findById(assessment.pageId)
+          const siblings = currentPage?.getParent()?.getChildren()?.models || []
+          const currentIndex = siblings.findIndex(p => p.get('_id') === assessment.pageId)
+          const isLastPage = currentIndex === siblings.length - 1
+
+          console.log("isLastPage:", isLastPage, "pageId:", assessment.pageId)
+
+         if (isLastPage) {
+           console.log("Last page! Flushing complete statements...")
+           await this.flushCompleteStatements()
+         }
     }, 500)
   }
 
@@ -2126,6 +2142,40 @@ class XAPI extends Backbone.Model {
       throw error
     }
   }
+
+    async flushCompleteStatements() {
+        if (!this.statementBuffer.length || !validateToken) {
+          console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken)
+          return
+    }
+
+     const passedStatements = this.statementBuffer.filter(
+        s => s.verb?.id === "http://adlnet.gov/expapi/verbs/passed"
+      )
+
+    this.statementBuffer = []
+
+    if (!passedStatements.length) {
+      console.log("flushCompleteStatements: no passed statements found")
+      return
+    }
+    console.log("flushCompleteStatements: sending", passedStatements.length, "passed statements")
+
+    this.xapiWrapper.lrs.auth = `Bearer ${sessionToken}`
+
+    return new Promise((resolve, reject) => {
+       this.xapiWrapper.sendStatements(
+         passedStatements,
+         (error, xhr) => {
+           if (error) {
+             Adapt.trigger("xapi:lrs:sendStatement:error", error)
+             return reject(error)
+           }
+           Adapt.trigger("xapi:lrs:sendStatement:success", xhr)
+           resolve(xhr)
+         }
+       )
+     })
 
   getGlobals() {
     return _.defaults(
