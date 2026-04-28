@@ -1025,6 +1025,7 @@ class XAPI extends Backbone.Model {
   }
 
   async showToastMessage(message) {
+    if (this.isPtPlus()) return
     const data = await fetchMessageToast(message)
     // Guard: nếu skip vì theme, hoặc call fail, thì thôi
     if (!data || !data.success || !data?.data?.messageEn) return
