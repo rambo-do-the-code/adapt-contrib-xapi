@@ -2145,11 +2145,11 @@ class XAPI extends Backbone.Model {
     }
   }
 
-    async flushCompleteStatements() {
-        if (!this.statementBuffer.length || !validateToken) {
-          console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken)
-          return
-        }
+  async flushCompleteStatements() {
+    if (!this.statementBuffer.length || !validateToken) {
+      console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken)
+      return
+    }
 
      const passedStatements = this.statementBuffer.filter(
         s => s.verb?.id === "http://adlnet.gov/expapi/verbs/passed"
@@ -2161,13 +2161,23 @@ class XAPI extends Backbone.Model {
       console.log("flushCompleteStatements: no passed statements found")
       return
     }
-    const pageResults = passedStatements.map(s => ({
-       pageId: s.pageId,
-       rawScore: s.result?.score?.raw ?? 0,
-       maxScore: s.result?.score?.max ?? 0,
-       scaled: s.result?.score?.scaled ?? 0,
-       success: s.result?.success ?? false,
-    }))
+
+      const pageResults = passedStatements.map(s => {
+        // Tìm page tương ứng trong finishScore để lấy startTime/endTime
+        const pageData = finishScore.pages.find(p => p.pageId === s.pageId)
+        const startTime = pageData?.startTime ?? null
+        const endTime = pageData?.endTime ?? Date.now()
+        const timeSpentMs = (startTime && endTime) ? endTime - startTime : 0
+
+        return {
+          pageId: s.pageId,
+          rawScore: s.result?.score?.raw ?? 0,
+          maxScore: s.result?.score?.max ?? 0,
+          scaled: s.result?.score?.scaled ?? 0,
+          success: s.result?.success ?? false,
+          timeSpentMs,
+        }
+      })
 
     const lrsEndpoint = this.xapiWrapper.lrs.endpoint // vd: http://localhost:8080/authoring-admin/external/sync/v1/statements/
     const flushUrl = lrsEndpoint.split("/sync/v1/")[0] + "/sync/v1/flushStatements"
