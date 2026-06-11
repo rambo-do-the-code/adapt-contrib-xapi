@@ -18,6 +18,7 @@ var finishScore = {
   user: "",
   resourceId: "",
   mode: "",
+  classId: "",
   pages: [],
 }
 var icmsBESyncUrlFinish = ""
@@ -256,6 +257,9 @@ class XAPI extends Backbone.Model {
             finishScore.sessionId = data.data.params.sessionId
             finishScore.mode = data.data.params.mode
             finishScore.resourceId = data.data.params.resourceId
+            finishScore.classId = data.data.params.classId
+              ? String(data.data.params.classId)
+              : ""
 
             // logging.info("---------------authoring test mode---------------");
             // set validateToken to true to send score to backend
