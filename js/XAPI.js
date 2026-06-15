@@ -2151,91 +2151,73 @@ class XAPI extends Backbone.Model {
   }
 
 async appendPassedPageToState(pageId, statement) {
-  const activityId = this.get("activityId")
-  const actor = this.get("actor")
-  const registration = this.get("shouldUseRegistration") === true
-    ? this.get("registration") : null
-
-  // Lấy state hiện tại
-  const currentState = this.get("state")
-  const passedPages = currentState["passedPages"] || []
-
-  // Chỉ thêm nếu chưa có pageId này
-  if (passedPages.find(p => p.pageId === pageId)) return
-
   const pageData = finishScore.pages.find(p => p.pageId === pageId)
-  const startTime = pageData?.startTime ?? null
-  const endTime = pageData?.endTime ?? Date.now()
+    const startTime = pageData?.startTime ?? null
+    const endTime = pageData?.endTime ?? Date.now()
 
-  passedPages.push({
-    pageId,
-    rawScore:    statement.result?.score?.raw ?? 0,
-    maxScore:    statement.result?.score?.max ?? 0,
-    scaled:      statement.result?.score?.scaled ?? 0,
-    success:     statement.result?.success ?? false,
-    timeSpentMs: (startTime && endTime) ? endTime - startTime : 0,
-  })
+    const storageKey = `passedPages_${sessionToken}`
+    const existing = JSON.parse(localStorage.getItem(storageKey) || "[]")
 
-  // Update local state
-  currentState["passedPages"] = passedPages
-  this.set({ state: currentState })
+    console.log("appendPassedPageToState2: storageKey", storageKey)
+    console.log("appendPassedPageToState2: existing before", existing.length, existing)
 
-  // ← Lưu lên LRS, token A giữ nguyên nên session sau getState() sẽ có lại
-  await new Promise((resolve) => {
-    this.xapiWrapper.sendState(
-      activityId,
-      actor,
-      "passedPages",
-      registration,
-      passedPages,
-      null,
-      null,
-      (error) => {
-        if (error) console.error("appendPassedPageToState error:", error)
-        resolve()
-      }
-    )
-  })
+    // Skip nếu đã có
+    if (existing.find(p => p.pageId === pageId)) {
+     console.log("appendPassedPageToState: already exists, skip")
+     return
+    }
 
-  console.log("appendPassedPageToState: saved", passedPages.length, "pages")
+    existing.push({
+     pageId,
+     rawScore:    statement.result?.score?.raw ?? 0,
+     maxScore:    statement.result?.score?.max ?? 0,
+     scaled:      statement.result?.score?.scaled ?? 0,
+     success:     statement.result?.success ?? false,
+     timeSpentMs: startTime && endTime ? endTime - startTime : 0,
+    })
+
+    localStorage.setItem(storageKey, JSON.stringify(existing))
+    console.log("appendPassedPageToState2: saved", existing.length, "pages", existing)
+
+  const verify = JSON.parse(localStorage.getItem(storageKey) || "[]")
+  console.log("verify from localStorage:", verify.length)
 }
 
   async flushCompleteStatements() {
-    if (!this.statementBuffer.length || !validateToken) {
-      console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken)
-      return
-    }
+  console.log("=== flushCompleteStatements called ===")
+     console.log("=== OVERRIDE FILE LOADED3 ===")
 
-    const currentState = this.get("state")
-      const passedPages = currentState["passedPages"] || []
+     console.log("validateToken:", validateToken)
+     if (!validateToken) {
+         console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken);
+         return
+     }
+      const storageKey = `passedPages_${sessionToken}`
+     const passedPages = JSON.parse(localStorage.getItem(storageKey) || "[]")
+     console.log("passedPages length1:", passedPages.length)
 
-    this.statementBuffer = []
+     this.statementBuffer = [];
 
-    if (!passedStatements.length) {
-      console.log("flushCompleteStatements: no passed statements found")
-      return
-    }
+     console.log("flushCompleteStatements: total pages", passedPages.length);
+     const lrsEndpoint = this.xapiWrapper.lrs.endpoint;
+     const flushUrl = lrsEndpoint.split("/sync/v1/")[0] + "/sync/v1/flushStatements";
+     try {
+         const response = await fetch(flushUrl, {
+             method: "POST",
+             headers: {
+                 "Content-Type": "application/json",
+                 Authorization: `Bearer ${sessionToken}`,
+                 "X-Experience-API-Version": "1.0.3"
+             },
+             body: JSON.stringify(passedPages)
+         });
+         const data = await response.json();
+         console.log("flushCompleteStatements: response", data)
+         localStorage.removeItem(storageKey) // ← cleanup
 
-    console.log("flushCompleteStatements: total pages", passedPages.length)
-
-    const lrsEndpoint = this.xapiWrapper.lrs.endpoint // vd: http://localhost:8080/authoring-admin/external/sync/v1/statements/
-    const flushUrl = lrsEndpoint.split("/sync/v1/")[0] + "/sync/v1/flushStatements"
-
-    try {
-       const response = await fetch(flushUrl, {
-       method: "POST",
-       headers: {
-         "Content-Type": "application/json",
-         "Authorization": `Bearer ${sessionToken}`,
-         "X-Experience-API-Version": "1.0.3",
-       },
-       body: JSON.stringify(passedPages),
-     })
-     const data = await response.json()
-     console.log("flushCompleteStatements: response", data)
-    } catch (error) {
-     console.error("flushCompleteStatements: error", error)
-    }
+     } catch (error) {
+         console.error("flushCompleteStatements: error", error)
+     }
   }
   getGlobals() {
     return _.defaults(
