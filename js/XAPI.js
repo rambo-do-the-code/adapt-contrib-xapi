@@ -1333,8 +1333,12 @@ class XAPI extends Backbone.Model {
           // Check xem có phải page cuối không
           const currentPage = data.findById(assessment.pageId)
           const siblings = currentPage?.getParent()?.getChildren()?.models || []
-          const currentIndex = siblings.findIndex(p => p.get('_id') === assessment.pageId)
-          const isLastPage = currentIndex === siblings.length - 1
+          const filteredSiblings = siblings.filter(page => {
+            const articles = page.getChildren?.()?.models || []
+            return articles.some(article => article.get('_assessment')?._isEnabled === true)
+          })
+          const currentIndex = filteredSiblings.findIndex(p => p.get('_id') === assessment.pageId)
+          const isLastPage = currentIndex === filteredSiblings.length - 1
 
           console.log("isLastPage:", isLastPage, "pageId:", assessment.pageId)
 
@@ -2177,7 +2181,7 @@ async appendPassedPageToState(pageId, statement) {
     })
 
     localStorage.setItem(storageKey, JSON.stringify(existing))
-    console.log("appendPassedPageToState2: saved", existing.length, "pages", existing)
+    console.log("appendPassedPageToState: saved", existing.length, "pages", existing)
 
   const verify = JSON.parse(localStorage.getItem(storageKey) || "[]")
   console.log("verify from localStorage:", verify.length)
@@ -2185,16 +2189,16 @@ async appendPassedPageToState(pageId, statement) {
 
   async flushCompleteStatements() {
   console.log("=== flushCompleteStatements called ===")
-     console.log("=== OVERRIDE FILE LOADED3 ===")
+     console.log("=== OVERRIDE FILE LOADED ===")
 
      console.log("validateToken:", validateToken)
      if (!validateToken) {
          console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken);
          return
      }
-      const storageKey = `passedPages_${sessionToken}`
-     const passedPages = JSON.parse(localStorage.getItem(storageKey) || "[]")
-     console.log("passedPages length1:", passedPages.length)
+    const storageKey = `passedPages_${sessionToken}`
+    const passedPages = JSON.parse(localStorage.getItem(storageKey) || "[]")
+    console.log("passedPages length:", passedPages.length)
 
      this.statementBuffer = [];
 
