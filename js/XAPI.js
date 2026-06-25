@@ -144,6 +144,29 @@ function initImportantData() {
   // logging.info('initImportantData run');
 }
 
+function decodeJwtPayload(token) {
+  try {
+    const payload = token.split('.')[1]
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(decoded)
+  } catch (e) {
+    return null
+  }
+}
+
+function getStableStorageKey() {
+  const payload = decodeJwtPayload(sessionToken)
+  if (!payload) return `passedPages_${sessionToken}` // fallback nếu decode fail
+
+  const { resourceId, user, sessionId, mode, schoolId } = payload
+  // chỉ giữ state nếu đủ field cần thiết
+  if (!resourceId || !user || !sessionId || !mode || !schoolId) {
+    return `passedPages_${sessionToken}` // fallback
+  }
+
+  return `passedPages_${resourceId}_${user}_${sessionId}_${mode}_${schoolId}`
+}
+
 class XAPI extends Backbone.Model {
   preinitialize() {
     // clear finishScore local storage
@@ -2159,7 +2182,7 @@ async appendPassedPageToState(pageId, statement) {
     const startTime = pageData?.startTime ?? null
     const endTime = pageData?.endTime ?? Date.now()
 
-    const storageKey = `passedPages_${sessionToken}`
+    const storageKey = getStableStorageKey()
     const existing = JSON.parse(localStorage.getItem(storageKey) || "[]")
 
     console.log("appendPassedPageToState2: storageKey", storageKey)
@@ -2196,7 +2219,7 @@ async appendPassedPageToState(pageId, statement) {
          console.log("flushStatements: skip, buffer=", this.statementBuffer.length, "validateToken=", validateToken);
          return
      }
-    const storageKey = `passedPages_${sessionToken}`
+    const storageKey = getStableStorageKey()
     const passedPages = JSON.parse(localStorage.getItem(storageKey) || "[]")
     console.log("passedPages length:", passedPages.length)
 
